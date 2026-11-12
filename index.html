@@ -1,0 +1,1524 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>一杯手冲的配比卡</title>
+<style>
+  :root{
+    --ink:#2b2622; --ink2:#6b6158; --ink3:#938a80;
+    --line:#ded5c9; --line2:#efe8dd; --paper:#fbf8f3; --card:#fffdf9;
+    --accent:#8a5a2b; --accent2:#b5875a; --warn:#9a5b12; --err:#a8322a; --ok:#3f6f43;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--paper); color:var(--ink);
+    font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    overflow-x:hidden;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:22px 18px 64px}
+  header.top{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 14px;margin-bottom:4px}
+  h1{font-size:22px;margin:0;letter-spacing:.5px}
+  .tagline{color:var(--ink2);font-size:13.5px}
+  .sub{color:var(--ink3);font-size:12.5px;margin:6px 0 18px}
+
+  .layout{display:grid;grid-template-columns:minmax(300px,360px) minmax(0,1fr);gap:20px;align-items:start}
+  @media (max-width:900px){ .layout{grid-template-columns:1fr} }
+
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 16px 18px}
+  .panel h2{font-size:14px;margin:0 0 12px;letter-spacing:.4px;color:var(--ink2);font-weight:600}
+  .field{margin-bottom:13px}
+  .field:last-child{margin-bottom:0}
+  label.lb{display:block;font-size:12.5px;color:var(--ink2);margin-bottom:5px}
+  .hint{font-size:11.5px;color:var(--ink3);margin-top:4px;line-height:1.45}
+  input[type=number],input[type=text],select{
+    width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:7px;background:#fff;
+    font:inherit;font-size:14px;color:var(--ink);
+  }
+  input:focus,select:focus{outline:2px solid var(--accent2);outline-offset:-1px;border-color:var(--accent2)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .seg{display:flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+  .seg button{flex:1;padding:8px 4px;border:0;background:#fff;font:inherit;font-size:13px;color:var(--ink2);cursor:pointer}
+  .seg button+button{border-left:1px solid var(--line)}
+  .seg button[aria-pressed=true]{background:var(--accent);color:#fff}
+  .chk{display:flex;align-items:center;gap:8px;font-size:13.5px}
+  .chk input{width:16px;height:16px}
+  .btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  button.act{
+    padding:8px 13px;border:1px solid var(--line);background:#fff;border-radius:7px;
+    font:inherit;font-size:13px;color:var(--ink);cursor:pointer
+  }
+  button.act:hover{border-color:var(--accent2)}
+  button.act.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .presets{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .presets button{padding:5px 9px;border:1px dashed var(--line);background:transparent;border-radius:20px;font:inherit;font-size:12px;color:var(--ink2);cursor:pointer}
+  .presets button:hover{border-color:var(--accent2);color:var(--accent)}
+
+  /* ── 配比卡（单据式） ── */
+  .receipt{background:var(--card);border:1px solid var(--line);border-radius:4px;position:relative;overflow:hidden}
+  .receipt::before,.receipt::after{
+    content:"";position:absolute;left:0;right:0;height:7px;
+    background:radial-gradient(circle at 6px 0,transparent 5px,var(--card) 5.5px) repeat-x;
+    background-size:12px 7px;pointer-events:none
+  }
+  .receipt::before{top:-1px;transform:rotate(180deg)}
+  .receipt::after{bottom:-1px}
+  .rc-head{padding:20px 18px 12px;border-bottom:1px dashed var(--line)}
+  .rc-title{font-size:15px;letter-spacing:2px;color:var(--ink2);margin:0 0 10px}
+  .rc-big{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  .rc-big .k{font-size:11.5px;color:var(--ink3);margin-bottom:3px}
+  .rc-big .v{font-family:var(--mono);font-size:22px;font-weight:600;letter-spacing:-.5px;white-space:nowrap}
+  .rc-big .u{font-size:12px;color:var(--ink2);margin-left:2px;font-family:inherit;font-weight:400}
+  .rc-note{font-size:12px;color:var(--ink3);margin-top:10px;line-height:1.5}
+
+  .rc-sec{padding:14px 18px;border-bottom:1px dashed var(--line)}
+  .rc-sec:last-child{border-bottom:0}
+  .rc-sec h3{font-size:12.5px;margin:0 0 9px;color:var(--ink2);letter-spacing:1px;font-weight:600}
+  table.steps{width:100%;border-collapse:collapse;font-size:13px}
+  table.steps th{text-align:left;font-weight:500;color:var(--ink3);font-size:11.5px;padding:0 6px 6px 0;border-bottom:1px solid var(--line2)}
+  table.steps td{padding:7px 6px 7px 0;border-bottom:1px solid var(--line2);vertical-align:top}
+  table.steps tr:last-child td{border-bottom:0}
+  .num-badge{display:inline-flex;width:19px;height:19px;border-radius:50%;background:var(--ink);color:#fff;
+    font-size:11.5px;align-items:center;justify-content:center;font-family:var(--mono);flex:0 0 auto}
+  .stepname{display:flex;align-items:center;gap:7px}
+  .stepnote{color:var(--ink3);font-size:11.5px;line-height:1.45;margin-top:3px}
+  .mono{font-family:var(--mono)}
+  .t-right{text-align:right;white-space:nowrap}
+
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:13px}
+  .kv dt{color:var(--ink3)}
+  .kv dd{margin:0;font-family:var(--mono)}
+  .kv dd.txt{font-family:inherit}
+
+  .bandrow{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+  .band{font-size:11.5px;padding:3px 9px;border-radius:20px;border:1px solid var(--line);color:var(--ink2)}
+  .band.ok{border-color:#bcd6be;background:#f1f7f1;color:var(--ok)}
+  .band.light{border-color:#e6d6b8;background:#fdf7ec;color:var(--warn)}
+  .band.strong,.band.over{border-color:#e8c4c0;background:#fdf1f0;color:var(--err)}
+  .band.under{border-color:#d8d2c4;background:#f7f4ee;color:var(--ink2)}
+
+  .diag{border-left:3px solid var(--accent2);padding:2px 0 2px 11px;margin-top:4px}
+  .diag .verdict{font-weight:600;font-size:13.5px;margin-bottom:4px}
+  .diag .why{font-size:12.5px;color:var(--ink2);line-height:1.55}
+  .actions{list-style:none;padding:0;margin:8px 0 0}
+  .actions li{margin-bottom:6px}
+  .actions button{
+    text-align:left;width:100%;padding:7px 10px;border:1px solid var(--line);background:#fff;
+    border-radius:7px;font:inherit;font-size:12.5px;color:var(--ink);cursor:pointer;line-height:1.4
+  }
+  .actions button:hover{border-color:var(--accent2);background:#fffaf3}
+  .actions button .go{color:var(--accent);font-weight:600}
+  .aside-note{font-size:11.5px;color:var(--ink3);margin-top:7px;line-height:1.5}
+
+  .msg{border-radius:8px;padding:10px 12px;font-size:13px;margin-bottom:12px;line-height:1.55}
+  .msg.err{background:#fdf3f2;border:1px solid #eccbc7;color:#7d2620}
+  .msg.warn{background:#fdf8ee;border:1px solid #ecdcc0;color:#6f4a12}
+  .msg ul{margin:6px 0 0;padding-left:18px}
+  .msg li{margin-bottom:3px}
+  .msg .ttl{font-weight:600}
+  .stale{background:#fdf3f2;border:1px solid #eccbc7;color:#7d2620;border-radius:8px;padding:14px 16px;font-size:13.5px;line-height:1.6}
+  .stale code{font-family:var(--mono);font-size:12.5px}
+
+  .bounds{font-size:12px;color:var(--ink2);line-height:1.6}
+  .bounds ul{margin:0;padding-left:17px}
+  .bounds li{margin-bottom:4px}
+
+  .footnote{font-size:11.5px;color:var(--ink3);margin-top:16px;line-height:1.6}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;background:var(--ink);color:#fff;
+    padding:9px 15px;border-radius:20px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .18s;z-index:99}
+  .toast.on{opacity:1}
+  .sep{height:1px;background:var(--line2);margin:14px 0}
+  .tiny{font-size:11.5px;color:var(--ink3)}
+  .nowrap{white-space:nowrap}
+  @media (max-width:420px){
+    .wrap{padding:16px 12px 48px}
+    .rc-big{grid-template-columns:1fr 1fr;gap:8px}
+    .rc-big .v{font-size:19px}
+    table.steps{font-size:12.5px}
+    .rc-sec{padding:12px 13px}
+    .rc-head{padding:16px 13px 10px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>一杯手冲的配比卡</h1>
+    <span class="tagline">壶里要烧多少水、杯里会得到多少克、下一杯该改哪一格</span>
+  </header>
+  <p class="sub">粉会吸走一部分水 —— 按 1:16 冲 15 g 粉，壶里 240 g 水，杯里只有 210 g。这张卡把这笔账先算清楚。</p>
+
+  <div class="layout">
+    <!-- 左：输入 -->
+    <section class="panel" aria-label="输入">
+      <h2>你的这一杯</h2>
+
+      <div class="msg err" id="errBox" hidden></div>
+      <div class="msg warn" id="warnBox" hidden></div>
+
+      <div class="field">
+        <label class="lb" for="vesselId">器具（决定粉会带走多少水）</label>
+        <select id="vesselId"></select>
+        <div class="hint" id="vesselNote"></div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label class="lb" for="dose">粉重（g）</label>
+          <input type="text" id="dose" inputmode="decimal" autocomplete="off" placeholder="例如 15">
+        </div>
+        <div class="field">
+          <label class="lb" for="ratio">粉水比 1 :</label>
+          <input type="text" id="ratio" inputmode="decimal" autocomplete="off" placeholder="例如 16">
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label class="lb" for="tempC">水温（°C）</label>
+          <input type="text" id="tempC" inputmode="numeric" autocomplete="off" placeholder="例如 92">
+        </div>
+        <div class="field">
+          <label class="lb" for="grindIdx">研磨档</label>
+          <select id="grindIdx"></select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="lb" for="targetEy">目标萃取率（%）</label>
+        <input type="text" id="targetEy" inputmode="decimal" autocomplete="off" placeholder="例如 20">
+        <div class="hint">常用工作区间 18–22 %；这只是你自己定的目标，不是合格线。</div>
+      </div>
+
+      <div class="field">
+        <div class="chk">
+          <input type="checkbox" id="iced">
+          <label for="iced">做冰手冲（一部分水换成冰）</label>
+        </div>
+        <div id="iceWrap" hidden style="margin-top:9px">
+          <label class="lb" for="iceFrac">冰占总水的比例（%）</label>
+          <input type="text" id="iceFrac" inputmode="numeric" autocomplete="off" placeholder="例如 40">
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="field">
+        <label class="lb" for="measuredTds">实测 TDS（%，没有就留空）</label>
+        <input type="text" id="measuredTds" inputmode="decimal" autocomplete="off" placeholder="例如 1.25">
+        <div class="hint">有折光仪才填。填了就能直接算出你这杯的萃取率，并给出该改几档研磨。</div>
+      </div>
+
+      <div class="field">
+        <label class="lb" for="taste">或者只凭喝到的味道</label>
+        <select id="taste"></select>
+      </div>
+
+      <div class="btns">
+        <button class="act primary" id="saveBtn" type="button">保存到本机</button>
+        <button class="act" id="resetBtn" type="button">恢复默认</button>
+      </div>
+
+      <div class="sep"></div>
+      <div class="lb" style="margin-bottom:0">快速试一个场景</div>
+      <div class="presets" id="presets"></div>
+
+      <div class="sep"></div>
+      <div class="lb" style="margin-bottom:6px">带走这张卡</div>
+      <div class="btns" style="margin-top:0">
+        <button class="act" id="dlCsv" type="button">CSV</button>
+        <button class="act" id="dlMd" type="button">Markdown</button>
+        <button class="act" id="dlPng" type="button">结果卡 PNG</button>
+        <button class="act" id="dlJson" type="button">JSON 备份</button>
+      </div>
+      <div class="hint" id="saveState"></div>
+    </section>
+
+    <!-- 右：配比卡 -->
+    <section id="cardHost" aria-label="配比卡"></section>
+  </div>
+
+  <p class="footnote">
+    本页不联网、不认任何品牌、不预测口感、不评价豆子；不处理水质，也不做意式流速与压粉诊断。
+    吸水系数、平衡区间与各档位换算都是「经验值 / 本工具的显式声明」，不是精确物理常数 —— 详见卡片最下方「这张卡有多少可信度」。
+  </p>
+</div>
+<div class="toast" id="toast"></div>
+<canvas id="pngCanvas" width="1080" height="1350" style="display:none"></canvas>
+
+<script>
+/* 一杯手冲的配比卡 · 核心引擎（纯函数，浏览器与 node 通用）
+ *
+ * 一句话：填粉重、比例、器具、水温，算出壶里该烧多少水（粉会吸走一部分）、
+ *         分段注水时刻表、杯里该有多少克；再用你实测的 TDS 或一句味觉，
+ *         算出下一杯具体改哪一格、改几格。
+ *
+ * 口径与假设全部写在页面上（也在 需求与调研.md §3 里）：本引擎不联网、不认任何品牌、
+ * 不预测口感、不评价豆子、不处理水质、不诊断意式流速。
+ *
+ * 公式（与页面、说明里每个数字同一套）：
+ *   W  = R · D                                 总注水量 = 比例 × 粉重
+ *   Rw = k · D                                 被粉留住的水 = 吸水系数 × 粉重
+ *   V  = W − Rw = D · (R − k)                  杯里液重
+ *   E  = V · TDS / 100                         被萃取出的可溶物质量
+ *   EY = 100 · E / D = V · TDS / D             萃取率（%）
+ *   TDS_target = EY_target · D / V             反解浓度
+ *   D' = V_wanted / (R − k)                    反解粉重
+ *   W' = R · V_wanted / (R − k)                反解总注水量
+ *   冰冲：W_hot = W · (1 − iceFrac)，冰 = W · iceFrac
+ */
+(function (root, factory) {
+  const A = factory();
+  if (typeof module === 'object' && module.exports) module.exports = A;
+  if (root) root.AppCore = A;
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  'use strict';
+
+  const VERSION = '1.0.0';
+
+  /* ─────────────── 器具与吸水留存系数 k ───────────────
+     k = 每 1 g 干粉会带走多少 g 水。
+     性质：**记忆中的经验值**（本轮未取得可引用一手来源，见 需求与调研.md §1.2），
+     不是精确物理常数；法压/爱乐压因为能压、能倒干净，留存明显低于滤纸。
+     用户在界面上可以改，改了立刻重算。 */
+  const VESSELS = [
+    { id: 'v60', name: '锥形滤纸（V60 类）', k: 2.0, kind: 'filter', note: '滤纸会挂水，粉床里那部分倒不出来' },
+    { id: 'cake', name: '蛋糕杯 / 平底滤纸', k: 2.2, kind: 'filter', note: '平底粉床更厚，挂水略多' },
+    { id: 'immersion', name: '法压壶（浸泡式）', k: 1.0, kind: 'immersion', note: '浸泡完压下去、倒到液面见渣，能多倒出一些' },
+    { id: 'aeropress', name: '爱乐压（加压）', k: 0.8, kind: 'immersion', note: '加压压出，留存最少' },
+    { id: 'espresso', name: '意式（仅参考系数）', k: 1.0, kind: 'espresso', note: '本项目不做意式流速/压粉诊断，只给参考系数' },
+  ];
+  const VESSEL_BY_ID = {};
+  VESSELS.forEach(function (v) { VESSEL_BY_ID[v.id] = v; });
+
+  /* 研磨档：0 最粗 → 5 最细。每细 1 档约 +1.0 个百分点 EY。
+     **这是本工具显式声明的量级换算，不是任何磨豆机的刻度**。 */
+  const GRINDS = ['粗砂糖', '中粗', '中细（默认）', '细', '很细', '极细（接近意式）'];
+  const GRIND_EY_PER_STEP = 1.0;
+
+  /* ─────────────── 常量与区间（性质逐条标明） ─────────────── */
+  const CONST = {
+    /* 记忆中的行业常用区间，本轮未取得可引用一手来源 → 页面只写「常用工作区间」 */
+    eyBalanced: [18.0, 22.0],
+    tdsFilterRange: [1.15, 1.45],
+    /* 本工具的设计选择（产品定义，不是科学结论） */
+    tdsBand: { light: 1.15, strong: 1.45 },     // <1.15 偏淡；>1.45 偏浓
+    eyBand: { under: 18.0, over: 22.0 },        // <18 不足；>22 过度
+    defaultTempC: 92,
+    tempEyPerDegC: -0.3,                        // 温度每 +1 °C，EY 约 −? 见下注
+    tempStepDegC: 2,
+    tempStepEy: 0.6,                            // 一次建议改 2 °C ≈ 0.6 个百分点 EY
+    ratioStep: 1.0,                             // 一次建议改 1 个比例单位 ≈ 0.10 个百分点 TDS
+    ratioStepTds: 0.10,
+    iceFracDefault: 0.4,
+    bloomRatio: 2.0,                            // 闷蒸水量 = 2 × 粉重
+    bloomMinG: 30,
+    bloomSec: 30,
+    /* 「前段至 60 %」的基准 = 总注水量 W（不是 W − 闷蒸）。这是澄清后的硬口径。 */
+    pour2CumFrac: 0.60,
+    /* 总时长 = 150 + 2 × (D − 15) 秒；下限是闷蒸的 30 秒；浸泡式抬到 240 秒。 */
+    totalSecBase: 150,
+    totalSecPerG: 2,
+    totalSecFloor: 30,
+    immersionSec: 240,
+    maxGrindSteps: 3,                           // 单次建议最多改 3 档
+  };
+  /* 注：tempEyPerDegC 的符号约定 —— 这里用「每 +1 °C 使 EY 增加 0.3 个百分点」，
+     实现里统一写成 +0.3/°C 的绝对值，方向由建议文案表达，避免符号写反。 */
+  const TEMP_EY_PER_DEG = 0.3;
+
+  const LIMITS = {
+    dose: { min: 5, max: 60 },
+    doseSmall: 8,        // < 8 g 提示
+    doseLarge: 40,       // > 40 g 提示分两壶
+    ratio: { min: 1.5, max: 40 },
+    ratioDilute: 22,     // > 22 提示偏淡
+    ratioTight: 1.5,     // R − k < 1.5 时给「杯量很少」警告
+    temp: { min: 70, max: 100 },
+    tempSuggest: [82, 96],
+    targetEy: { min: 12, max: 30 },
+    tds: { min: 0, max: 5 },
+    iceFrac: { min: 0, max: 0.95 },
+  };
+
+  const FIELDS = ['vesselId', 'dose', 'ratio', 'tempC', 'grindIdx', 'targetEy', 'iced', 'iceFrac', 'measuredTds', 'taste'];
+  const TASTES = [
+    { id: '', label: '不填（我没测 TDS，也没细品）' },
+    { id: 'weak-sour', label: '又淡又酸（像柠檬水）' },
+    { id: 'weak-bitter', label: '淡，但后段发苦发涩' },
+    { id: 'ok-sour', label: '浓淡还行，就是尖酸' },
+    { id: 'ok-bitter', label: '浓淡还行，但苦、发干' },
+    { id: 'strong-bitter', label: '太浓又苦' },
+  ];
+  const DEFAULTS = {
+    vesselId: 'v60', dose: 15, ratio: 16, tempC: 92, grindIdx: 2,
+    targetEy: 20, iced: false, iceFrac: 0.4, measuredTds: null, taste: '',
+  };
+  const SCENARIOS = [
+    { id: 'default', name: '默认：中烘 15 g / 1:16 / V60', patch: {} },
+    { id: 'big', name: '两杯量：22 g / 1:15.5', patch: { dose: 22, ratio: 15.5 } },
+    { id: 'light', name: '浅烘尖酸：把水温提到 94 °C', patch: { tempC: 94, grindIdx: 3 } },
+    { id: 'dark', name: '深烘怕苦：降到 88 °C、粗一档', patch: { tempC: 88, grindIdx: 1 } },
+    { id: 'press', name: '法压壶 30 g / 1:15', patch: { vesselId: 'immersion', dose: 30, ratio: 15, grindIdx: 0 } },
+    { id: 'iced', name: '冰手冲：15 g，四成水是冰', patch: { iced: true, iceFrac: 0.4 } },
+    { id: 'calib', name: '校准演示：实测 TDS 1.10 %', patch: { measuredTds: 1.1 } },
+  ];
+
+  /* ─────────────── 工具 ─────────────── */
+  function round(x, d) {
+    if (!isFinite(x)) return NaN;
+    const f = Math.pow(10, d == null ? 0 : d);
+    return Math.round(x * f) / f;
+  }
+  function num(v) {
+    if (v === null || v === undefined || v === '') return null;
+    const n = typeof v === 'number' ? v : Number(String(v).trim());
+    return isFinite(n) ? n : null;
+  }
+  function clamp(x, lo, hi) { return x < lo ? lo : (x > hi ? hi : x); }
+
+  function vesselOf(id) { return VESSEL_BY_ID[id] || VESSEL_BY_ID.v60; }
+  function grindLabel(i) { return GRINDS[clamp(Math.round(i), 0, GRINDS.length - 1)]; }
+
+  /* ─────────────── 输入归一化（对 null / 空 / 非数字一律不抛异常） ─────────────── */
+  function normalizeInput(input) {
+    const src = (input && typeof input === 'object' && !Array.isArray(input)) ? input : {};
+    const o = {};
+    o.vesselId = VESSEL_BY_ID[src.vesselId] ? src.vesselId : DEFAULTS.vesselId;
+    const dn = num(src.dose); o.dose = dn === null ? DEFAULTS.dose : dn;
+    const rn = num(src.ratio); o.ratio = rn === null ? DEFAULTS.ratio : rn;
+    const tn = num(src.tempC); o.tempC = tn === null ? DEFAULTS.tempC : tn;
+    const gn = num(src.grindIdx); o.grindIdx = gn === null ? DEFAULTS.grindIdx : clamp(Math.round(gn), 0, GRINDS.length - 1);
+    const en = num(src.targetEy); o.targetEy = en === null ? DEFAULTS.targetEy : en;
+    o.iced = src.iced === true || src.iced === 'true' || src.iced === 1;
+    const icn = num(src.iceFrac); o.iceFrac = icn === null ? DEFAULTS.iceFrac : icn;
+    o.measuredTds = num(src.measuredTds);
+    o.taste = (typeof src.taste === 'string' && TASTES.some(function (t) { return t.id === src.taste; })) ? src.taste : '';
+    /* 保留「用户到底填了什么」用于报错：字段是否存在、以及是否是可解析的数字 */
+    o._raw = {};
+    ['dose', 'ratio', 'tempC', 'targetEy'].forEach(function (f) {
+      o._raw[f] = Object.prototype.hasOwnProperty.call(src, f) ? src[f] : undefined;
+    });
+    /* 数值字段统一成产品口径的小数位：保证「显示的数」与「参与判定/比较的数」是同一个数。
+       温度与研磨档取整；比例最多 2 位；目标萃取率 2 位。 */
+    o.tempC = Math.round(o.tempC);
+    o.ratio = round(o.ratio, 2);
+    o.targetEy = round(o.targetEy, 2);
+    o.iceFrac = round(o.iceFrac, 4);
+    o.measuredTds = o.measuredTds === null ? null : round(o.measuredTds, 2);
+    return o;
+  }
+  function defaults() { return Object.assign({}, DEFAULTS); }
+  function scenarios() { return SCENARIOS.map(function (s) { return { id: s.id, name: s.name, input: normalizeInput(Object.assign({}, DEFAULTS, s.patch)) }; }); }
+
+  /* ─────────────── 校验：返回 {ok, errors[], warnings[]} ───────────────
+     只接受「已经归一化过」的输入对象（带 _raw）。compute 直接把它传进来，
+     这样「用户填的原文」和「四舍五入前的原值」都还在，不会校验到一个被改过的数。
+     外部若直接调用 validate，请先 A.normalizeInput(...)。 */
+  function validate(norm) {
+    const o = (norm && norm._raw) ? norm : normalizeInput(norm);
+    const errors = [], warnings = [];
+    const raw = o._raw;
+    /* 只有「用户真的填了一个值，但那不是数字」才算错；字段缺省或空串按默认值处理，不算错。 */
+    function badText(v) {
+      if (v === null || v === undefined) return false;
+      if (typeof v === 'string' && v.trim() === '') return false;
+      return num(v) === null;
+    }
+
+    ['dose', 'ratio', 'tempC', 'targetEy'].forEach(function (f) {
+      if (badText(raw[f])) errors.push({ field: f, code: 'not-a-number', msg: '「' + f + '」填的是「' + String(raw[f]) + '」，不是数字 —— 这一项已按默认值处理，请检查' });
+    });
+
+    if (o.dose < LIMITS.dose.min) errors.push({ field: 'dose', code: 'dose-too-small', msg: '粉重填的是 ' + o.dose + ' g，至少要 ' + LIMITS.dose.min + ' g（再少粉床太浅，注水不可能均匀）' });
+    if (o.dose > LIMITS.dose.max) errors.push({ field: 'dose', code: 'dose-too-large', msg: '粉重填的是 ' + o.dose + ' g，最多 ' + LIMITS.dose.max + ' g（再多请分两壶）' });
+    if (o.ratio < LIMITS.ratio.min) errors.push({ field: 'ratio', code: 'ratio-too-small', msg: '比例填的是 1 : ' + o.ratio + '，至少要 1 : ' + LIMITS.ratio.min });
+    if (o.ratio > LIMITS.ratio.max) errors.push({ field: 'ratio', code: 'ratio-too-large', msg: '比例填的是 1 : ' + o.ratio + '，最多 1 : ' + LIMITS.ratio.max + '（这不是手冲了）' });
+    if (o.tempC < LIMITS.temp.min || o.tempC > LIMITS.temp.max) errors.push({ field: 'tempC', code: 'temp-out-of-range', msg: '水温填的是 ' + o.tempC + ' °C，超出 ' + LIMITS.temp.min + '–' + LIMITS.temp.max + ' °C 这个范围（建议 ' + LIMITS.tempSuggest[0] + '–' + LIMITS.tempSuggest[1] + '）' });
+    if (o.targetEy < LIMITS.targetEy.min || o.targetEy > LIMITS.targetEy.max) errors.push({ field: 'targetEy', code: 'ey-out-of-range', msg: '目标萃取率填的是 ' + o.targetEy + ' %，要在 ' + LIMITS.targetEy.min + '–' + LIMITS.targetEy.max + ' % 之间' });
+    if (o.iced && (o.iceFrac < LIMITS.iceFrac.min || o.iceFrac > LIMITS.iceFrac.max)) errors.push({ field: 'iceFrac', code: 'ice-out-of-range', msg: '冰占比填的是 ' + o.iceFrac + '，要在 ' + LIMITS.iceFrac.min + '–' + LIMITS.iceFrac.max + ' 之间' });
+    if (o.measuredTds !== null && (o.measuredTds <= LIMITS.tds.min || o.measuredTds >= LIMITS.tds.max)) errors.push({ field: 'measuredTds', code: 'tds-out-of-range', msg: '滤泡咖啡实测 TDS 一般在 1–2 %（意式 6–12 %）；' + o.measuredTds + ' % 超出本工具能解释的范围' });
+
+    const v = vesselOf(o.vesselId);
+    const k = v.k;
+    /* 决定性退化：R ≤ k 时杯里不会有咖啡液 */
+    if (o.ratio <= k) {
+      errors.push({ field: 'ratio', code: 'no-beverage', msg: '这个比例下杯里不会有咖啡液：' + o.dose + ' g 粉会带走 ' + round(k * o.dose, 1) + ' g 水，而总注水只有 ' + round(o.ratio * o.dose, 1) + ' g。请把比例调到大于 1 : ' + k });
+    }
+
+    /* 提示与错误分开算：即使这一格填错了，其它格的提示也要照给，
+       否则「粉重填 100」这种输入只会看到一条错，看不到「建议分两壶」这条更有用的提示。 */
+    if (o.dose < LIMITS.doseSmall) warnings.push({ field: 'dose', code: 'dose-small', msg: '只有 ' + o.dose + ' g 粉，粉床很浅 —— 注水要更慢更稳，否则容易局部过萃' });
+    if (o.dose >= LIMITS.doseLarge) warnings.push({ field: 'dose', code: 'dose-large', msg: o.dose + ' g 已经到或超过常见滤杯的舒适容量，建议分两壶（每壶 ' + round(o.dose / 2, 1) + ' g）' });
+    if (o.ratio > LIMITS.ratioDilute) warnings.push({ field: 'ratio', code: 'ratio-dilute', msg: '1 : ' + o.ratio + ' 已经很淡了；再加水只会更淡，不会更「清爽」' });
+    const margin = o.ratio - k;
+    if (margin > 0 && margin <= LIMITS.ratioTight) warnings.push({ field: 'ratio', code: 'ratio-tight', msg: '杯里液重只有粉重的 ' + round(margin, 2) + ' 倍（' + round(margin * o.dose, 1) + ' g），非常少 —— 这已经到或接近这个器具的极限' });
+    if (o.tempC < LIMITS.tempSuggest[0]) warnings.push({ field: 'tempC', code: 'temp-low', msg: o.tempC + ' °C 偏低，萃取会明显变慢，容易又酸又淡' });
+    if (o.tempC > LIMITS.tempSuggest[1]) warnings.push({ field: 'tempC', code: 'temp-high', msg: o.tempC + ' °C 偏高，深烘豆容易出焦苦和涩' });
+    if (o.targetEy < CONST.eyBalanced[0]) warnings.push({ field: 'targetEy', code: 'ey-low', msg: '目标萃取率 ' + o.targetEy + ' % 低于常用工作区间 ' + CONST.eyBalanced[0] + '–' + CONST.eyBalanced[1] + ' %，成品会偏酸偏薄' });
+    if (o.targetEy > CONST.eyBalanced[1]) warnings.push({ field: 'targetEy', code: 'ey-high', msg: '目标萃取率 ' + o.targetEy + ' % 高于常用工作区间 ' + CONST.eyBalanced[0] + '–' + CONST.eyBalanced[1] + ' %，容易出苦涩和干口感' });
+    if (v.kind === 'espresso') warnings.push({ field: 'vesselId', code: 'espresso-ref', msg: '意式只提供参考系数：本项目不做流速、压粉与粉饼诊断' });
+    /* 冰冲专属：注水只针对热水部分，热水部分也可能盖不住粉吸走的量。
+       这不是新的退化状态（R > k 仍成立），但必须如实提示 —— 文本没写清，已按 §9 澄清。 */
+    if (o.iced && errors.length === 0) {
+      const wHot = o.ratio * o.dose * (1 - o.iceFrac);
+      if (wHot - k * o.dose <= 0) {
+        warnings.push({
+          field: 'iceFrac', code: 'iced-hot-insufficient',
+          msg: '冰占 ' + Math.round(o.iceFrac * 100) + ' % 时，留给咖啡的热水只有 ' + round(wHot, 1) + ' g，盖不住粉会吸走的 ' +
+            round(k * o.dose, 1) + ' g —— 热冲当下不会有咖啡液。把比例调大，或把冰占比调小。',
+        });
+      }
+    }
+
+    /* 保留字段：器具 k 被改成 ≤0（器具表固定，但保留这条判断以便测试与将来开放自定义） */
+    if (!(k > 0)) errors.push({ field: 'vesselId', code: 'k-nonpositive', msg: '吸水留存系数必须大于 0' });
+
+    return { ok: errors.length === 0, errors: errors, warnings: warnings };
+  }
+
+  /* ─────────────── 分段注水时刻表 ───────────────
+     澄清后的口径（见 需求与调研.md §3.2）：
+       · 注水分 3 段：① 闷蒸 max(2D, 30) g；② 注到「60 % × W」这个累计量；③ 把剩下的注完（累计 = W）。
+       · 基准一律是 W；冰冲时注水只针对热水部分 W_hot = W × (1 − 冰占比)，
+         所以冰冲的段 2 累计 = 60 % × W_hot，段 3 累计 = W_hot。
+       · 总时长 = 150 + 2 × (D − 15) 秒，下限 30 秒；浸泡式抬到 240 秒。
+       · 时刻：段 1 固定 0–30 秒；其余时间由段 2、3 均分。
+       · 若 60 % × 基准 ≤ 闷蒸量（小水量时会发生），段 2 的量为 0 →
+         该段并入段 1，时刻表退化成 2 段（不编造一个 0 g 的段）。 */
+  function pourBase(o, v) {
+    /* 注水针对的水量：冰冲只注热水部分；不勾冰冲就是 W。 */
+    const W = o.ratio * o.dose;
+    return o.iced ? W * (1 - o.iceFrac) : W;
+  }
+  function totalSeconds(D, v) {
+    if (v.kind === 'immersion') return CONST.immersionSec;
+    /* 计时器上只有整秒：计算值四舍五入成整数秒再排时刻。 */
+    return Math.max(CONST.totalSecFloor, Math.round(CONST.totalSecBase + CONST.totalSecPerG * (D - 15)));
+  }
+  function pourSchedule(W, D, vessel, o) {
+    const v = vesselOf(vessel && vessel.id ? vessel.id : vessel);
+    const base = o ? pourBase(o, v) : W;     /* 注水的总克数（冰冲时是热水部分） */
+    const totalSec = totalSeconds(D, v);
+
+    if (v.kind === 'immersion') {
+      return [
+        { idx: 1, label: '一次注满', startSec: 0, endSec: CONST.bloomSec, amount: round(base, 1), cum: round(base, 1),
+          note: '全部热水一次倒进去，搅一下让粉全湿' },
+        { idx: 2, label: '浸泡', startSec: CONST.bloomSec, endSec: Math.max(CONST.bloomSec + 1, totalSec - 30), amount: 0, cum: round(base, 1),
+          note: '盖盖子静置；到第 ' + Math.max(CONST.bloomSec + 1, totalSec - 30) + ' 秒开始压' },
+        { idx: 3, label: '压下倒出', startSec: Math.max(CONST.bloomSec + 1, totalSec - 30), endSec: totalSec, amount: 0, cum: round(base, 1),
+          note: '慢压到底，倒到液面见渣就停' },
+      ];
+    }
+
+    const bloom = Math.min(Math.max(CONST.bloomMinG, CONST.bloomRatio * D), base);
+    const c2 = base * CONST.pour2CumFrac;                 /* 段 2 的累计目标 = 60 % × 基准 */
+    const seg2 = c2 - bloom;
+    const seg3 = base - c2;
+
+    if (seg2 <= 1e-9) {
+      /* 段 2 塌成 0：并进段 1 */
+      return [
+        { idx: 1, label: '闷蒸 + 一次注完', startSec: 0, endSec: CONST.bloomSec, amount: round(base, 1), cum: round(base, 1),
+          note: '水太少，闷蒸量已经占满了 60 % 的累计目标 —— 一次注完，然后等它滴' },
+        { idx: 2, label: '等滴完', startSec: CONST.bloomSec, endSec: totalSec, amount: 0, cum: round(base, 1),
+          note: '等到不再成线、开始一滴一滴就移开滤杯，别让它滴干' },
+      ];
+    }
+    const rest = totalSec - CONST.bloomSec;
+    const t2 = CONST.bloomSec + Math.round(rest / 2);
+    return [
+      { idx: 1, label: '闷蒸', startSec: 0, endSec: CONST.bloomSec, amount: round(bloom, 1), cum: round(bloom, 1),
+        note: '从中心往外绕圈，把粉全部打湿，然后等 ' + CONST.bloomSec + ' 秒让它排气' },
+      { idx: 2, label: '第二段', startSec: CONST.bloomSec, endSec: t2, amount: round(seg2, 1), cum: round(c2, 1),
+        note: '细水流绕小圈，注到累计 ' + round(c2, 1) + ' g 为止' },
+      { idx: 3, label: '第三段', startSec: t2, endSec: totalSec, amount: round(seg3, 1), cum: round(base, 1),
+        note: '把剩下的注完，轻轻晃一下滤杯让粉床平，然后等它滴完（总时长约 ' + totalSec + ' 秒）' },
+    ];
+  }
+
+  /* ─────────────── 味觉 / 实测 TDS → 具体改哪一格 ─────────────── */
+  function tasteAdvice(o, v, beverage, eyNow) {
+    /* eyNow: 实测 TDS 算出的当前萃取率；没有实测则为 null */
+    const t = o.taste;
+    if (!t) return null;
+    const atCeiling = o.grindIdx >= GRINDS.length - 1;
+    const atFloor = o.grindIdx <= 0;
+    const hot = o.tempC >= LIMITS.tempSuggest[1];
+    const cold = o.tempC <= LIMITS.tempSuggest[0];
+
+    const A = {
+      'weak-sour': {
+        verdict: '萃取不足 + 浓度偏低',
+        steps: [{ lever: 'grind', delta: 1, text: '研磨细 1 档' }, { lever: 'temp', delta: 1, text: '水温 +' + CONST.tempStepDegC + ' °C' }],
+        why: '又淡又酸是「东西没萃出来」：先磨细，再补一点温度。',
+      },
+      'weak-bitter': {
+        verdict: '浓度偏低但后段过萃',
+        steps: [{ lever: 'grind', delta: 0, text: '研磨先不动' }, { lever: 'temp', delta: -1, text: '水温 −' + CONST.tempStepDegC + ' °C' }, { lever: 'pour', delta: 0, text: '注水更温柔、缩短后段拖尾' }],
+        why: '淡说明水多，苦说明后段把不好的东西也带出来了 —— 先降温、改注水手法，别急着磨细。',
+      },
+      'ok-sour': {
+        verdict: '浓度可以、萃取不足（多半不均匀）',
+        steps: [{ lever: 'grind', delta: 1, text: '研磨细 1 档' }, { lever: 'pour', delta: 0, text: '闷蒸后搅一下粉层，减少通道效应' }],
+        why: '浓淡对了但尖酸，通常是粉层里有水走得太快的「通道」，不是整体不够。',
+      },
+      'ok-bitter': {
+        verdict: '浓度可以、萃取过度',
+        steps: [{ lever: 'grind', delta: -1, text: '研磨粗 1 档' }, { lever: 'temp', delta: -1, text: '水温 −' + CONST.tempStepDegC + ' °C' }],
+        why: '苦和干是萃太多了：粗一档、降一点温，杯量不变。',
+      },
+      'strong-bitter': {
+        verdict: '浓度偏高 + 萃取过度',
+        steps: [{ lever: 'ratio', delta: 1, text: '比例加水 1 个单位（1 : ' + round(o.ratio + CONST.ratioStep, 1) + '）' }, { lever: 'grind', delta: -1, text: '研磨粗 1 档' }],
+        why: '又浓又苦：先加水把浓度降下来，再把研磨放粗一档。',
+      },
+    };
+    const a = A[t] || null;
+    if (!a) return null;
+
+    /* 撞到边界时如实改口 */
+    const notes = [];
+    if (atCeiling && a.steps.some(function (s) { return s.lever === 'grind' && s.delta > 0; })) {
+      a.steps = a.steps.filter(function (s) { return !(s.lever === 'grind' && s.delta > 0); });
+      notes.push('研磨已经是最细一档，再细会堵滤纸 —— 本轮只能靠水温和注水手法。');
+    }
+    if (atFloor && a.steps.some(function (s) { return s.lever === 'grind' && s.delta < 0; })) {
+      a.steps = a.steps.filter(function (s) { return !(s.lever === 'grind' && s.delta < 0); });
+      notes.push('研磨已经是最粗一档，再粗就成泡豆子了 —— 换成降温、缩短浸泡时间。');
+    }
+    if (hot && a.steps.some(function (s) { return s.lever === 'temp' && s.delta > 0; })) {
+      a.steps = a.steps.filter(function (s) { return !(s.lever === 'temp' && s.delta > 0); });
+      notes.push('水温已经到 ' + LIMITS.tempSuggest[1] + ' °C 上限，不再往上加。');
+    }
+    if (cold && a.steps.some(function (s) { return s.lever === 'temp' && s.delta < 0; })) {
+      a.steps = a.steps.filter(function (s) { return !(s.lever === 'temp' && s.delta < 0); });
+      notes.push('水温已经到 ' + LIMITS.tempSuggest[0] + ' °C 下限，不再往下减。');
+    }
+    a.notes = notes;
+    a.basedOn = eyNow === null || eyNow === undefined ? '味觉（没有实测 TDS）' : '味觉 + 实测萃取率 ' + round(eyNow, 2) + ' %';
+    return a;
+  }
+
+  function tdsAdvice(o, eyNow) {
+    if (eyNow === null || eyNow === undefined) return null;
+    const gap = o.targetEy - eyNow;                        // 百分点
+    const steps = clamp(round(gap / GRIND_EY_PER_STEP, 2), -CONST.maxGrindSteps, CONST.maxGrindSteps);
+    const dir = steps > 0.05 ? '细' : (steps < -0.05 ? '粗' : '不动');
+    const tempDelta = Math.abs(gap) < 0.5 ? 0 : (gap > 0 ? 1 : -1);
+    const hot = o.tempC >= LIMITS.tempSuggest[1];
+    const cold = o.tempC <= LIMITS.tempSuggest[0];
+    const notes = [];
+    let finalTemp = tempDelta;
+    if ((tempDelta > 0 && hot) || (tempDelta < 0 && cold)) { finalTemp = 0; notes.push('水温已经在建议区间边界上，这一步只动研磨。'); }
+    const out = {
+      eyNow: round(eyNow, 2),
+      eyTarget: round(o.targetEy, 1),
+      gapPp: round(gap, 2),
+      grindSteps: Math.abs(steps) < 0.05 ? 0 : steps,
+      grindDir: dir,
+      grindLabelNow: grindLabel(o.grindIdx),
+      grindLabelNext: grindLabel(clamp(o.grindIdx + Math.round(steps), 0, GRINDS.length - 1)),
+      tempDelta: finalTemp,
+      text: (Math.abs(steps) < 0.05
+        ? '萃取率已经落在目标上（差 ' + round(gap, 2) + ' 个百分点），研磨不用动'
+        : '下一杯把研磨' + dir + ' ' + Math.abs(round(steps, 1)) + ' 档（' + grindLabel(o.grindIdx) + ' → ' + grindLabel(clamp(o.grindIdx + Math.round(steps), 0, GRINDS.length - 1)) + '）')
+        + (finalTemp ? '，水温' + (finalTemp > 0 ? '+' : '−') + CONST.tempStepDegC + ' °C' : ''),
+      howMuch: '本工具的换算：每细 1 档约 +' + GRIND_EY_PER_STEP.toFixed(1) + ' 个百分点萃取率；实际取决于你的磨豆机，请把它当量级而不是刻度。',
+      notes: notes,
+    };
+    return out;
+  }
+
+  /* ─────────────── 主计算 ─────────────── */
+  function compute(input) {
+    const o = normalizeInput(input);
+    const v = vesselOf(o.vesselId);
+    const k = v.k;
+    const report = validate(o);  /* o 已归一化，_raw 保留用户原文 */
+
+    const D = o.dose, R = o.ratio;
+    const W = R * D;
+    const Rw = k * D;
+    const Vraw = W - Rw;                                  // 可能 ≤ 0（已在 validate 里判为错误）
+    const V = Vraw;
+    const feasible = Vraw > 0 && report.ok;
+    const iceFrac = o.iced ? o.iceFrac : 0;
+    /* 出卡才给这些量：不可行时「冰多少 / 热水多少」没有意义，给 null 而不是给一个假数。 */
+    const iceG = feasible ? W * iceFrac : null;
+    const hotWaterG = feasible ? W - iceG : null;
+    /* 由 EY = V·TDS/D 且 TDS = EY·D/V，可溶物质量 E = V·TDS/100 = EY·D/100。
+       直接写 EY·D/100，避免两条路径各自舍入产生不一致。 */
+    const Emass = feasible ? o.targetEy * D / 100 : NaN;
+    const tdsTargetRaw = feasible ? o.targetEy * D / V : NaN;
+    const tdsTargetR = round(tdsTargetRaw, 2);
+    const eyBand = !feasible ? null
+      : (o.targetEy < CONST.eyBand.under ? 'under' : (o.targetEy > CONST.eyBand.over ? 'over' : 'balanced'));
+    const tdsBand = !feasible ? null
+      : (tdsTargetR < CONST.tdsBand.light ? 'light' : (tdsTargetR > CONST.tdsBand.strong ? 'strong' : 'ok'));
+    const pours = feasible ? pourSchedule(W, D, v, o) : [];
+
+    const eyNow = (feasible && o.measuredTds !== null) ? (V * o.measuredTds / D) : null;
+    const diag = {
+      tdsAdvice: tdsAdvice(o, eyNow),
+      tasteAdvice: feasible ? tasteAdvice(o, v, V, eyNow) : null,
+      measured: eyNow === null ? null : {
+        tds: round(o.measuredTds, 2),
+        ey: round(eyNow, 2),
+        eyBand: eyNow < CONST.eyBand.under ? 'under' : (eyNow > CONST.eyBand.over ? 'over' : 'balanced'),
+        tdsBand: o.measuredTds < CONST.tdsBand.light ? 'light' : (o.measuredTds > CONST.tdsBand.strong ? 'strong' : 'ok'),
+      },
+    };
+
+    /* 反解路径：想要 V_wanted 时该用多少粉、多少水 */
+    const inverse = feasible ? {
+      perGram: { dose: 1, ratio: R, water: R, beverage: round(R - k, 4) },
+      forBeverage: function (vWanted) {
+        const n = num(vWanted);
+        if (n === null || n <= 0) return null;
+        const dNeed = n / (R - k);
+        return { dose: round(dNeed, 2), water: round(R * dNeed, 1), beverage: round(n, 1) };
+      },
+    } : null;
+
+    return {
+      version: VERSION,
+      input: {
+        vesselId: o.vesselId, vesselName: v.name, vesselKind: v.kind, k: k,
+        dose: round(D, 2), ratio: round(R, 2), tempC: o.tempC, grindIdx: o.grindIdx,
+        grindLabel: grindLabel(o.grindIdx), targetEy: round(o.targetEy, 2), iced: o.iced, iceFrac: iceFrac,
+        measuredTds: o.measuredTds, taste: o.taste,
+      },
+      ok: report.ok,
+      feasible: feasible,
+      errors: report.errors,
+      warnings: report.warnings,
+      card: {
+        /* 出卡才给「水与粉的关系」推出来的量：不可行时给 null，不给一个假数（负数杯量不是结果也不是输入）。 */
+        dose: round(D, 2),
+        waterTotal: feasible ? round(W, 1) : null,
+        waterRetained: feasible ? round(Rw, 1) : null,
+        beverage: feasible ? round(V, 1) : null,
+        ratioText: '1 : ' + round(R, 2),
+        tempC: o.tempC, grindLabel: grindLabel(o.grindIdx),
+        iceG: feasible ? round(iceG, 1) : null, hotWaterG: feasible ? round(hotWaterG, 1) : null, iced: o.iced,
+      },
+      target: {
+        ey: round(o.targetEy, 2), eyTarget: round(o.targetEy, 2),
+        tds: feasible ? tdsTargetR : null, tdsRaw: feasible ? tdsTargetRaw : null,
+        extractMass: feasible ? round(Emass, 3) : null, eyBand: eyBand, tdsBand: tdsBand,
+        eyBalanced: CONST.eyBalanced.slice(), tdsRange: CONST.tdsFilterRange.slice(),
+      },
+      pours: pours,
+      diag: diag,
+      inverse: inverse,
+      notes: buildNotes(o, v, V, feasible, k),
+      generatedAt: null,   // 由调用方（UI）写时间，保证核心是纯函数
+    };
+  }
+
+  function buildNotes(o, v, V, feasible, k) {
+    const n = [];
+    n.push('吸水留存按 ' + k + ' g 水 / g 粉（' + v.name + '）：' + v.note + '。这是经验值，不是精确常数。');
+    n.push('目标萃取率是你自己定的；本工具只用它反解浓度，不替你判断好不好喝。');
+    if (feasible) n.push('每 1 g 粉出 ' + round(V / o.dose, 2) + ' g 咖啡液（比例减去吸水系数）；想要某个杯量，就用「杯量 ÷ ' + round(o.ratio - k, 2) + '」作粉重。');
+    return n;
+  }
+
+  /* ─────────────── 自检（页面里也跑同一套，用来防公式被改坏） ─────────────── */
+  function runChecks(result) {
+    const ck = [];
+    function t(name, cond, detail) { ck.push({ name: name, pass: !!cond, detail: detail === undefined ? '' : String(detail) }); return !!cond; }
+    if (!result || !result.card) { t('结果存在', false, 'result 为空'); return ck; }
+    const c = result.card, tg = result.target;
+    const near = function (a, b, eps) { return isFinite(a) && isFinite(b) && Math.abs(a - b) <= (eps === undefined ? 0.02 : eps); };
+
+    t('注水量 = 比例 × 粉重', near(c.waterTotal, result.input.ratio * c.dose, 0.06), c.waterTotal + ' vs ' + round(result.input.ratio * c.dose, 2));
+    t('留住的水 = k × 粉重', near(c.waterRetained, result.input.k * c.dose, 0.06));
+    t('杯里液重 = 注水 − 留住', near(c.beverage, c.waterTotal - c.waterRetained, 0.11), c.beverage + ' vs ' + round(c.waterTotal - c.waterRetained, 2));
+    if (result.feasible) {
+      /* ── 容差口径（全部按「显示值的小数位」推导，不是拍的数） ──
+         公开字段是显示值：杯量 1 位（±0.05 g）、总注水 1 位（±0.05 g）、浓度 2 位（±0.005 %）、
+         可溶物 3 位（±0.0005 g）、萃取率 2 位（±0.005 个百分点）。
+         小剂量时 ±0.05 g 的显示舍入相对于粉重很大，所以容差用「显示精度 ÷ 杯量」这类相对量推。 */
+      const etaV = 0.05 / c.beverage;                 // 杯量显示精度（1 位）带来的相对误差
+      const etaW = 0.05 / c.waterTotal;               // 总注水显示精度（1 位）带来的相对误差
+      const eyDelta = 0.005;                          // 萃取率显示精度（2 位）
+      const eyRawTol = tg.ey * (etaV + etaW) + eyDelta;                              // 全精度浓度回代
+      const eyShowTol = tg.ey * (etaV + etaW + 0.005 / (tg.tds || 1)) + eyDelta;      // 显示浓度回代
+      /* 可溶物两条路径：杯量 1 位的绝对误差 ±0.05 g 直接乘浓度（百分比）→ /100 转到克；
+         再加上可溶物自身 3 位小数的 ±0.0005 与浓度 2 位小数的贡献。 */
+      /* 可溶物两条路径的容差 = 可溶物自身 3 位小数的 ±0.0005
+         + 杯量 1 位小数的 ±0.05 g 乘浓度（百分比）→ /100 转到克
+         + 浓度 2 位小数的 ±0.005 乘杯量 → /100 转到克 */
+      const massTolFinal = 0.0006 + 0.05 * tg.tds / 100 + c.beverage * 0.005 / 100 + c.dose * 0.0053 / 100;
+
+      t('萃取率 → 浓度 → 萃取率 回到原值（全精度）', near(tg.tdsRaw * c.beverage / c.dose, tg.ey, eyRawTol), round(tg.tdsRaw * c.beverage / c.dose, 4) + ' vs ' + tg.ey + '（容差 ' + round(eyRawTol, 4) + '）');
+      t('萃取率 → 显示浓度 → 萃取率（含显示舍入容差）', near(tg.tds * c.beverage / c.dose, tg.ey, eyShowTol), round(tg.tds * c.beverage / c.dose, 4) + ' vs ' + tg.ey + '（容差 ' + round(eyShowTol, 4) + '）');
+      t('可溶物质量 = 萃取率 × 粉重 / 100', near(tg.extractMass, tg.ey * c.dose / 100, 0.0006));
+      t('可溶物质量 = 杯量 × 浓度 / 100（含显示舍入容差）', near(tg.extractMass, c.beverage * tg.tds / 100, massTolFinal), tg.extractMass + ' vs ' + round(c.beverage * tg.tds / 100, 4) + '（容差 ' + round(massTolFinal, 4) + '）');
+      /* 容差同样按显示精度推：杯量 ÷ 粉重 里，杯量的 ±0.05 g 被粉重除会放大 1/粉重 倍，
+         再加上粉重自身 2 位小数的 ±0.005。小剂量时这两项都不小，所以不能拍一个固定小数。 */
+      const perGramTol = 0.05 / c.dose + 0.005 + 1e-9;
+      t('每克粉的杯量 = 比例 − k', near(c.beverage / c.dose, result.input.ratio - result.input.k, perGramTol), round(c.beverage / c.dose, 4) + ' vs ' + round(result.input.ratio - result.input.k, 4) + '（容差 ' + round(perGramTol, 4) + '）');
+      t('冗余字段 inverse.perGram 与实际口径一致', near(result.inverse.perGram.beverage, result.input.ratio - result.input.k, 0.0001)
+        && near(result.inverse.perGram.water, result.input.ratio, 0.0001)
+        && result.inverse.perGram.dose === 1, JSON.stringify(result.inverse.perGram));
+      /* 反解用的是「显示杯量」（1 位小数，±0.05 g），除以 (R−k) 后误差被放大 1/(R−k) 倍。 */
+      const invTol = 0.05 / (result.input.ratio - result.input.k) + 0.005 + 1e-9;
+      const inv = result.inverse.forBeverage(c.beverage);
+      t('反解粉重能还原目标杯量', !!inv && near(inv.dose, c.dose, invTol), (inv ? inv.dose : 'null') + ' vs ' + c.dose + '（容差 ' + round(invTol, 4) + '）');
+      const pourTarget = c.iced ? c.hotWaterG : c.waterTotal;
+      t('分段注水累计 = 注水目标（冰冲时是热水部分）', near(result.pours[result.pours.length - 1].cum, pourTarget, 0.11));
+      t('分段注水之和 = 注水目标', near(result.pours.reduce(function (s, p) { return s + p.amount; }, 0), pourTarget, 0.35));
+      t('冰冲：冰 + 热水 = 总注水', !c.iced || near(c.iceG + c.hotWaterG, c.waterTotal, 0.11));
+      t('杯量为正', c.beverage > 0);
+    } else {
+      t('不可行时不给出杯量数字', !isFinite(c.beverage) || c.beverage <= 0 || c.waterTotal <= 0);
+    }
+    return ck;
+  }
+
+  return {
+    VERSION: VERSION, VESSELS: VESSELS, VESSEL_BY_ID: VESSEL_BY_ID, GRINDS: GRINDS,
+    GRIND_EY_PER_STEP: GRIND_EY_PER_STEP, CONST: CONST, LIMITS: LIMITS, TEMP_EY_PER_DEG: TEMP_EY_PER_DEG,
+    FIELDS: FIELDS, TASTES: TASTES, DEFAULTS: DEFAULTS, SCENARIOS: SCENARIOS,
+    defaults: defaults, scenarios: scenarios, normalizeInput: normalizeInput, validate: validate,
+    compute: compute, runChecks: runChecks, pourSchedule: pourSchedule, vesselOf: vesselOf,
+    grindLabel: grindLabel, round: round, clamp: clamp,
+  };
+});
+
+</script>
+<script>
+/* 一杯手冲的配比卡 · 界面层
+ * 约定：所有数字都来自 AppCore.compute() 的同一次结果；界面自己不算任何数字（除了显示宽度）。
+ * 四条历史教训照做：① 每个控件都有 id；② 监听器不把 event 对象当 override 传；
+ * ③ 下载钩子绝不吞掉真正的下载动作；④ 格式化函数对 null/NaN 一律返回占位符。
+ */
+(function () {
+  'use strict';
+  const A = window.AppCore;
+  const $ = function (id) { return document.getElementById(id); };
+  const LS_KEY = 'pour-card.v1';
+
+  const state = {
+    input: A.defaults(),   /* 归一化后的输入：界面上显示的、与引擎一致的一份 */
+    raw: A.defaults(),     /* 用户/控件里真正填的东西：用来让引擎判「这不是数字」 */
+    result: null,
+    savedAt: null,
+    lastAction: '',
+  };
+
+  /* ─────────────── 控件初始化 ─────────────── */
+  function fillStaticOptions() {
+    const vs = $('vesselId');
+    vs.innerHTML = '';
+    A.VESSELS.forEach(function (v) {
+      const o = document.createElement('option');
+      o.value = v.id; o.textContent = v.name;
+      vs.appendChild(o);
+    });
+    const g = $('grindIdx');
+    g.innerHTML = '';
+    A.GRINDS.forEach(function (name, i) {
+      const o = document.createElement('option');
+      o.value = String(i); o.textContent = (i + 1) + '. ' + name;
+      g.appendChild(o);
+    });
+    const t = $('taste');
+    t.innerHTML = '';
+    A.TASTES.forEach(function (x) {
+      const o = document.createElement('option');
+      o.value = x.id; o.textContent = x.label;
+      t.appendChild(o);
+    });
+  }
+
+  function applyInputToControls(inp) {
+    $('vesselId').value = inp.vesselId;
+    $('dose').value = inp.dose;
+    $('ratio').value = inp.ratio;
+    $('tempC').value = inp.tempC;
+    $('grindIdx').value = String(inp.grindIdx);
+    $('targetEy').value = inp.targetEy;
+    $('iced').checked = !!inp.iced;
+    $('iceFrac').value = Math.round((inp.iceFrac == null ? A.DEFAULTS.iceFrac : inp.iceFrac) * 100);
+    $('measuredTds').value = (inp.measuredTds === null || inp.measuredTds === undefined) ? '' : inp.measuredTds;
+    $('taste').value = inp.taste || '';
+    $('iceWrap').hidden = !inp.iced;
+    updateVesselNote();
+  }
+
+  function readControls() {
+    return {
+      vesselId: $('vesselId').value,
+      dose: $('dose').value,
+      ratio: $('ratio').value,
+      tempC: $('tempC').value,
+      grindIdx: $('grindIdx').value,
+      targetEy: $('targetEy').value,
+      iced: $('iced').checked,
+      iceFrac: $('iceFrac').value === '' ? null : Number($('iceFrac').value) / 100,
+      measuredTds: $('measuredTds').value === '' ? null : $('measuredTds').value,
+      taste: $('taste').value,
+    };
+  }
+
+  function updateVesselNote() {
+    const v = A.vesselOf($('vesselId').value);
+    $('vesselNote').textContent = v.name + '：每 1 g 粉会带走约 ' + v.k + ' g 水 —— ' + v.note + '。';
+    $('iceWrap').hidden = !$('iced').checked;
+  }
+
+  /* ─────────────── 格式化（null/NaN 一律占位符） ─────────────── */
+  function f1(x) { return (x === null || x === undefined || !isFinite(x)) ? '—' : Number(x).toFixed(1); }
+  function f2(x) { return (x === null || x === undefined || !isFinite(x)) ? '—' : Number(x).toFixed(2); }
+  function f3(x) { return (x === null || x === undefined || !isFinite(x)) ? '—' : Number(x).toFixed(3); }
+  function f0(x) { return (x === null || x === undefined || !isFinite(x)) ? '—' : String(Math.round(x)); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function mmss(sec) {
+    const s = Math.max(0, Math.round(sec));
+    return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  }
+  const EY_BAND_TXT = { under: '偏低（会偏酸偏薄）', balanced: '落在常用工作区间', over: '偏高（容易苦涩发干）' };
+  const TDS_BAND_TXT = { light: '偏淡', ok: '正常带', strong: '偏浓' };
+
+  /* ─────────────── 渲染 ─────────────── */
+  function render() {
+    /* 关键：把「用户原样填的东西」交给引擎，它才知道要报「粉重填的是 abc，不是数字」。
+       如果把归一化后的值传进去，非法文本就已经被悄悄换成默认值了 —— 那是静默吞掉用户的输入。 */
+    const r = A.compute(state.raw);
+    state.result = r;
+    /* 归一化那一份用来回填控件与后续比较，保证界面上显示的数 = 参与判定的数 */
+    state.input = A.normalizeInput(r.input);
+    renderMessages(r);
+    renderCard(r);
+    renderSaveState();
+  }
+
+  function renderMessages(r) {
+    const eb = $('errBox'), wb = $('warnBox');
+    if (r.errors.length) {
+      eb.hidden = false;
+      eb.innerHTML = '<div class="ttl">这个组合算不出来（' + r.errors.length + ' 条）</div><ul>' +
+        r.errors.map(function (e) { return '<li>' + esc(e.msg) + '</li>'; }).join('') + '</ul>';
+    } else { eb.hidden = true; eb.innerHTML = ''; }
+    if (r.warnings.length) {
+      wb.hidden = false;
+      wb.innerHTML = '<div class="ttl">可以算，但有一点要先说（' + r.warnings.length + ' 条）</div><ul>' +
+        r.warnings.map(function (w) { return '<li>' + esc(w.msg) + '</li>'; }).join('') + '</ul>';
+    } else { wb.hidden = true; wb.innerHTML = ''; }
+  }
+
+  function renderCard(r) {
+    const host = $('cardHost');
+    if (!r.feasible) {
+      /* 上方错误框已经把每条原因逐条列出来了，这里不再重复同一句话，
+         也不要把所有失败都归因到「比例」—— 粉重越界、水温越界、填了非数字都会走到这里。 */
+      const onlyRatio = r.errors.length > 0 && r.errors.every(function (e) { return e.field === 'ratio'; });
+      const hint = onlyRatio
+        ? '这个器具（' + esc(r.input.vesselName) + '，吸水系数 ' + esc(r.input.k) + ' g 水 / g 粉）在比例 ≤ 1 : ' + esc(r.input.k) +
+          ' 时，粉会把水全部吸走，杯里什么都不剩。把比例调到大于 1 : ' + esc(r.input.k) + '，再回来看这张卡。'
+        : '左边红框里列了具体原因（' + r.errors.length + ' 条）。改掉之后这张卡会自动出来 —— 你填的其它数值都还在，不用重填。';
+      host.innerHTML =
+        '<div class="receipt"><div class="rc-head"><p class="rc-title">配 比 卡</p>' +
+        '<div class="stale"><b>这张卡先出不来。</b><br>' + hint + '</div></div></div>';
+      return;
+    }
+    const c = r.card, tg = r.target;
+
+    const big =
+      '<div class="rc-big">' +
+      '<div><div class="k">壶里要烧的水</div><div class="v">' + f1(c.waterTotal) + '<span class="u">g</span></div></div>' +
+      '<div><div class="k">杯里会得到</div><div class="v">' + f1(c.beverage) + '<span class="u">g</span></div></div>' +
+      '<div><div class="k">被粉留住</div><div class="v">' + f1(c.waterRetained) + '<span class="u">g</span></div></div>' +
+      '</div>';
+
+    const head =
+      '<div class="rc-head">' +
+      '<p class="rc-title">配 比 卡</p>' +
+      big +
+      '<div class="rc-note">' + f1(c.dose) + ' g 粉 ｜ 比例 ' + esc(c.ratioText) + ' ｜ ' + esc(c.tempC) + ' °C ｜ 研磨 ' +
+      esc(c.grindLabel) + (c.iced ? ' ｜ 冰手冲：冰 ' + f1(c.iceG) + ' g + 热水 ' + f1(c.hotWaterG) + ' g' : '') + '</div>' +
+      '</div>';
+
+    /* 注水时刻表 */
+    const rows = r.pours.map(function (p) {
+      const amt = p.amount > 0 ? f1(p.amount) + ' g' : '—';
+      return '<tr>' +
+        '<td class="t-right mono nowrap">' + mmss(p.startSec) + '–' + mmss(p.endSec) + '</td>' +
+        '<td><div class="stepname"><span class="num-badge">' + p.idx + '</span>' + esc(p.label) + '</div>' +
+        '<div class="stepnote">' + esc(p.note) + '</div></td>' +
+        '<td class="t-right mono nowrap">' + amt + '</td>' +
+        '<td class="t-right mono nowrap">' + f1(p.cum) + ' g</td>' +
+        '</tr>';
+    }).join('');
+    const steps =
+      '<div class="rc-sec"><h3>注水时刻表</h3>' +
+      '<table class="steps"><thead><tr><th>时刻</th><th>这一段做什么</th><th class="t-right">加水</th><th class="t-right">累计</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table>' +
+      '<div class="rc-note">目标总时长约 ' + mmss(r.pours[r.pours.length - 1].endSec) + '。时刻是给手快的参考，不是必须踩点。</div>' +
+      '</div>';
+
+    /* 这一杯的数字 */
+    const nums =
+      '<div class="rc-sec"><h3>这一杯的数字</h3>' +
+      '<dl class="kv">' +
+      '<dt>目标萃取率</dt><dd>' + f2(tg.ey) + ' %</dd>' +
+      '<dt>对应杯里浓度</dt><dd>' + f2(tg.tds) + ' %</dd>' +
+      '<dt>被萃取出的可溶物</dt><dd>' + f3(tg.extractMass) + ' g</dd>' +
+      '<dt>每 1 g 粉出液</dt><dd>' + f2(c.beverage / c.dose) + ' g</dd>' +
+      '<dt>折算</dt><dd class="txt">' + cupTargetText(r) + '</dd>' +
+      '</dl>' +
+      '<div class="bandrow">' +
+      '<span class="band ' + esc(tg.eyBand) + '">萃取率：' + esc(EY_BAND_TXT[tg.eyBand]) + '</span>' +
+      '<span class="band ' + esc(tg.tdsBand) + '">浓度：' + esc(TDS_BAND_TXT[tg.tdsBand]) + '</span>' +
+      '<span class="band">常用区间 ' + tg.eyBalanced[0] + '–' + tg.eyBalanced[1] + ' % ／ 浓度 ' + tg.tdsRange[0] + '–' + tg.tdsRange[1] + ' %</span>' +
+      '</div>' +
+      '</div>';
+
+    /* 校准与下一杯 */
+    let calib;
+    if (r.diag.measured === null && !r.diag.tasteAdvice) {
+      calib = '<div class="rc-sec"><h3>校准：下一杯怎么改</h3>' +
+        '<p class="why" style="font-size:12.5px;color:var(--ink2);line-height:1.6">' +
+        '这一栏空着。要么在左边填一个实测 TDS（有折光仪才算），要么选一句你喝到的味道 —— ' +
+        '本工具不会凭空猜你的口感。</p></div>';
+    } else {
+      let html = '<div class="rc-sec"><h3>校准：下一杯怎么改</h3>';
+      if (r.diag.measured) {
+        html += '<dl class="kv" style="margin-bottom:9px">' +
+          '<dt>实测 TDS</dt><dd>' + f2(r.diag.measured.tds) + ' %</dd>' +
+          '<dt>反推萃取率</dt><dd>' + f2(r.diag.measured.ey) + ' %</dd>' +
+          '<dt>与目标差</dt><dd>' + (r.diag.measured.ey >= tg.ey ? '+' : '') + f2(r.diag.measured.ey - tg.ey) + ' 个百分点</dd>' +
+          '</dl>' +
+          '<div class="bandrow" style="margin-bottom:9px">' +
+          '<span class="band ' + esc(r.diag.measured.eyBand) + '">萃取率：' + esc(EY_BAND_TXT[r.diag.measured.eyBand]) + '</span>' +
+          '<span class="band ' + esc(r.diag.measured.tdsBand) + '">浓度：' + esc(TDS_BAND_TXT[r.diag.measured.tdsBand]) + '</span>' +
+          '</div>';
+        const a = r.diag.tdsAdvice;
+        html += '<div class="diag"><div class="verdict">按实测：' + esc(a.text) + '</div>' +
+          '<div class="why">' + esc(a.howMuch) + '</div>';
+        if (a.notes && a.notes.length) html += '<div class="aside-note">' + a.notes.map(esc).join('；') + '</div>';
+        html += '<ul class="actions">' + actionButtons([
+          { lever: 'grind', delta: a.grindSteps, text: '按这个改研磨：' + esc(a.grindLabelNow) + ' → ' + esc(a.grindLabelNext) },
+          { lever: 'temp', delta: a.tempDelta, text: a.tempDelta ? '水温 ' + (a.tempDelta > 0 ? '+' : '−') + A.CONST.tempStepDegC + ' °C' : '水温不动' },
+        ]) + '</ul></div>';
+      }
+      const ta = r.diag.tasteAdvice;
+      if (ta) {
+        if (r.diag.measuredChain) { /* 占位，见下 */ }
+        html += '<div class="diag" style="margin-top:' + (r.diag.measured ? '14px' : '0') + '">' +
+          '<div class="verdict">按味道：' + esc(ta.verdict) + '</div>' +
+          '<div class="why">' + esc(ta.why) + '</div>' +
+          '<div class="aside-note">判据：' + esc(ta.basedOn) + '</div>' +
+          '<ul class="actions">' + actionButtons(ta.steps) + '</ul>' +
+          (ta.notes && ta.notes.length ? '<div class="aside-note">' + ta.notes.map(esc).join('；') + '</div>' : '') +
+          (r.diag.measured
+            ? '<div class="aside-note"><b>两条路都填了时以实测为准</b>：上面「按实测」的档数是根据你这杯测出来的数字算的；「按味道」只是你没带折光仪时的替代判断。两条不一致时，先按实测调，味道那条不要同时叠加。</div>'
+            : '') +
+          '</div>';
+      }
+      html += '<div class="aside-note">每细 1 档约 +' + A.GRIND_EY_PER_STEP.toFixed(1) +
+        ' 个百分点萃取率、一次调温 ' + A.CONST.tempStepDegC + ' °C 约 ' + A.CONST.tempStepEy +
+        ' 个百分点 —— 都是本工具声明的量级换算，实际取决于你的磨豆机和水壶。</div>';
+      html += '</div>';
+      calib = html;
+    }
+
+    /* 边界 */
+    const bounds = '<div class="rc-sec"><h3>这张卡有多少可信度</h3><div class="bounds"><ul>' +
+      r.notes.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') +
+      '<li>本工具<b>不</b>预测口感、<b>不</b>评价豆子、<b>不</b>处理水质；意式只给参考系数，不做流速与压粉诊断。</li>' +
+      '<li>平衡区间与浓度区间是「常用工作区间」，本工具在 2026-11-13 这一轮<b>没取得可引用的一手来源</b>，请当成参考带而不是合格线。</li>' +
+      '<li>默认场景（中烘水洗豆、V60、15 g）是<b>虚构示例</b>，不是实测数据、也不代表任何真实用户分布。</li>' +
+      '<li>不校验你的秤、温度计、折光仪是否校准；你填进来的实测值被当作已校准数据使用。</li>' +
+      '</ul></div></div>';
+
+    host.innerHTML = '<div class="receipt">' + head + steps + nums + calib + bounds + '</div>';
+    bindActionButtons();
+  }
+
+  function cupTargetText(r) {
+    return '每 1 g 粉出 ' + f2(r.card.beverage / r.card.dose) + ' g 液；想要别的杯量，按这个倍数折粉重';
+  }
+
+  function actionButtons(steps) {
+    const out = [];
+    (steps || []).forEach(function (s, i) {
+      const d = Number(s.delta) || 0;
+      const inert = (s.lever === 'temp' && d === 0) || (s.lever === 'grind' && d === 0);
+      if (s.lever === 'pour') {
+        out.push('<li class="act-item"><button type="button" class="actbtn" disabled style="opacity:.72;cursor:default">' + esc(s.text) + '（手法，无法一键应用）</button></li>');
+        return;
+      }
+      if (inert && s.lever === 'temp' && s.text.indexOf('不动') < 0) {
+        out.push('<li class="act-item"><button type="button" class="actbtn" disabled style="opacity:.72;cursor:default">' + esc(s.text) + '（已到边界，不作改动）</button></li>');
+        return;
+      }
+      if (s.lever === 'grind' && d === 0) return;
+      if (s.lever === 'temp' && d === 0) return;
+      out.push('<li class="act-item"><button type="button" class="actbtn" data-lever="' + esc(s.lever) + '" data-delta="' + d + '">' +
+        '<span class="go">点这里应用</span> · ' + esc(s.text) + '</button></li>');
+    });
+    return out.join('');
+  }
+
+  function bindActionButtons() {
+    Array.prototype.forEach.call(document.querySelectorAll('#cardHost button.actbtn:not([disabled])'), function (b) {
+      b.addEventListener('click', function () {
+        const lever = b.getAttribute('data-lever');
+        const delta = Number(b.getAttribute('data-delta'));
+        applyChange(lever, delta);
+      });
+    });
+  }
+
+  /* 建议能作用于输入：点了就真的改掉输入并立刻重算 */
+  function applyChange(lever, delta) {
+    /* 以引擎归一化后的输入为准（state.input 与 state.result.input 必须是同一口径） */
+    state.input = A.normalizeInput(state.input);
+    state.raw = Object.assign({}, state.input);
+    if (lever === 'grind') {
+      const next = Math.max(0, Math.min(A.GRINDS.length - 1, state.input.grindIdx + Math.round(delta)));
+      if (next === state.input.grindIdx) { toast('已经在这一档边界上了'); return; }
+      state.input.grindIdx = next;
+      state.lastAction = '研磨改到「' + A.grindLabel(next) + '」，已重算。';
+    } else if (lever === 'temp') {
+      const step = A.CONST.tempStepDegC;
+      const next = Math.max(A.LIMITS.temp.min, Math.min(A.LIMITS.temp.max, Math.round(state.input.tempC + delta * step)));
+      state.input.tempC = next;
+      state.lastAction = '水温改到 ' + next + ' °C，已重算。';
+    } else if (lever === 'ratio') {
+      const next = A.round(state.input.ratio + delta * A.CONST.ratioStep, 2);
+      state.input.ratio = next;
+      state.lastAction = '比例改到 1 : ' + next + '，已重算。';
+    } else {
+      return;
+    }
+    /* 顺序很重要：先把新值写回控件，再让它成为 state.raw，最后才 render。
+       如果先 render，render 会拿旧的 state.raw 重算，把刚点上来的改动又盖回去。 */
+    applyInputToControls(state.input);
+    state.raw = Object.assign({}, state.input);
+    render();
+    toast(state.lastAction);
+  }
+
+  /* ─────────────── 事件绑定 ─────────────── */
+  function onFieldChange() {
+    /* 改任何字段都清掉上一句动作提示，避免提示与当前输入不一致 */
+    state.lastAction = '';
+    state.raw = readControls();
+    render();
+  }
+
+  function bind() {
+    ['dose', 'ratio', 'tempC', 'targetEy', 'measuredTds', 'iceFrac'].forEach(function (id) {
+      const el = $(id);
+      el.addEventListener('input', onFieldChange);
+      el.addEventListener('change', onFieldChange);
+    });
+    ['vesselId', 'grindIdx', 'taste'].forEach(function (id) {
+      $(id).addEventListener('change', onFieldChange);
+    });
+    $('iced').addEventListener('change', function () {
+      $('iceWrap').hidden = !$('iced').checked;
+      onFieldChange();
+    });
+    $('vesselId').addEventListener('change', function () {
+      const v = A.vesselOf($('vesselId').value);
+      /* 器具换了以后，原来那个比例可能算不出咖啡液；不自动改用户的数，只如实报警 */
+      updateVesselNote();
+      if (v) { /* 注释保留：这里刻意不做「自动纠正」，以免偷偷改掉用户输入 */ }
+      onFieldChange();
+    });
+    $('saveBtn').addEventListener('click', saveLocal);
+    $('resetBtn').addEventListener('click', function () {
+      state.raw = A.defaults();
+      state.lastAction = '';
+      render();
+      applyInputToControls(state.input);
+      toast('已恢复默认场景');
+    });
+    $('dlCsv').addEventListener('click', function () { downloadCsv(); });
+    $('dlMd').addEventListener('click', function () { downloadMd(); });
+    $('dlPng').addEventListener('click', function () { downloadPng(); });
+    $('dlJson').addEventListener('click', function () { downloadJson(); });
+
+    const pv = $('presets');
+    pv.innerHTML = '';
+    A.scenarios().forEach(function (s) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = s.name;
+      b.addEventListener('click', function () {
+        state.raw = Object.assign(A.defaults(), s.input);
+        state.lastAction = '已套用场景：' + s.name + '。';
+        render();
+        applyInputToControls(state.input);
+        toast(state.lastAction);
+      });
+      pv.appendChild(b);
+    });
+  }
+
+  /* ─────────────── 本机保存与恢复 ─────────────── */
+  function saveLocal() {
+    try {
+      state.savedAt = new Date().toISOString();
+      localStorage.setItem(LS_KEY, JSON.stringify({ input: state.input, savedAt: state.savedAt }));  /* 存归一化后的那一份 */
+      renderSaveState();
+      toast('已保存到本机，刷新后会自动恢复');
+    } catch (e) {
+      toast('保存失败：' + (e && e.message ? e.message : '本机存储不可用'));
+    }
+  }
+  function loadLocal() {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (!raw) return false;
+      const o = JSON.parse(raw);
+      if (!o || !o.input) return false;
+      state.input = A.normalizeInput(o.input);
+      state.raw = Object.assign({}, state.input);
+      state.savedAt = o.savedAt || null;
+      return true;
+    } catch (e) { return false; }
+  }
+  function renderSaveState() {
+    const el = $('saveState');
+    if (!el) return;
+    const bits = [];
+    if (state.savedAt) bits.push('本机存档：' + state.savedAt.replace('T', ' ').slice(0, 19));
+    if (state.lastAction) bits.push(state.lastAction);
+    el.textContent = bits.join(' ｜ ');
+  }
+
+  /* ─────────────── 四种导出 ─────────────── */
+  function fileStamp() {
+    const d = new Date();
+    const p = function (n) { return String(n).padStart(2, '0'); };
+    return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '-' + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds());
+  }
+  function triggerDownload(blob, filename) {
+    /* 注意：这里绝对不能 return —— 批次 59 曾因为钩子里写了 return 把真正的下载动作吞掉，
+       blob 尺寸对得上但磁盘上什么都没有。必须真的走 a.click()。 */
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1500);
+  }
+
+  function csvText(r) {
+    const c = r.card, tg = r.target;
+    const L = [];
+    L.push('# 一杯手冲的配比卡 · 导出');
+    L.push('# 导出时间,' + new Date().toISOString());
+    L.push('# 说明,默认场景是虚构示例；所有数字来自同一次引擎计算');
+    L.push('分区,项目,数值,单位');
+    function row(sec, k, v, u) { L.push([sec, k, v, u || ''].map(function (x) { return '"' + String(x).replace(/"/g, '""') + '"'; }).join(',')); }
+    row('输入', '器具', r.input.vesselName, '');
+    row('输入', '吸水留存系数 k', r.input.k, 'g水/g粉');
+    row('输入', '粉重', c.dose, 'g');
+    row('输入', '粉水比', '1 : ' + r.input.ratio, '');
+    row('输入', '水温', c.tempC, '°C');
+    row('输入', '研磨档', c.grindLabel, '');
+    row('输入', '目标萃取率', tg.ey, '%');
+    row('输入', '冰手冲', c.iced ? '是' : '否', '');
+    if (c.iced) { row('输入', '冰占比', r.input.iceFrac, ''); row('输入', '冰', c.iceG, 'g'); row('输入', '热水', c.hotWaterG, 'g'); }
+    row('结果', '壶里总注水量', c.waterTotal, 'g');
+    row('结果', '被粉留住的水', c.waterRetained, 'g');
+    row('结果', '杯里液重', c.beverage, 'g');
+    row('结果', '对应浓度 TDS', tg.tds, '%');
+    row('结果', '被萃取出的可溶物', tg.extractMass, 'g');
+    row('结果', '每 1 g 粉出液', Math.round(c.beverage / c.dose * 10000) / 10000, 'g');
+    r.pours.forEach(function (p) {
+      row('注水段 ' + p.idx, p.label + '（' + mmss(p.startSec) + '–' + mmss(p.endSec) + '）', p.amount, 'g');
+      row('注水段 ' + p.idx, p.label + ' 累计', p.cum, 'g');
+    });
+    if (r.diag.measured) {
+      row('校准', '实测 TDS', r.diag.measured.tds, '%');
+      row('校准', '反推萃取率', r.diag.measured.ey, '%');
+    }
+    if (r.diag.tasteAdvice) {
+      row('校准', '味觉判定', r.diag.tasteAdvice.verdict, '');
+      r.diag.tasteAdvice.steps.forEach(function (s, i) { row('校准', '动作 ' + (i + 1), s.text, ''); });
+    }
+    r.warnings.forEach(function (w, i) { row('提示 ' + (i + 1), w.code, w.msg, ''); });
+    r.notes.forEach(function (n, i) { row('边界 ' + (i + 1), 'note', n, ''); });
+    return L.join('\r\n') + '\r\n';
+  }
+
+  function mdText(r) {
+    const c = r.card, tg = r.target;
+    const L = [];
+    L.push('# 一杯手冲的配比卡');
+    L.push('');
+    L.push('> 导出时间：' + new Date().toISOString() + '　（默认场景是虚构示例；以下数字来自同一次引擎计算）');
+    L.push('');
+    L.push('## 一句话');
+    L.push('');
+    L.push('**' + f1(c.dose) + ' g 粉，壶里烧 ' + f1(c.waterTotal) + ' g 水，杯里得到 ' + f1(c.beverage) +
+      ' g**（' + f1(c.waterRetained) + ' g 水被粉留住），比例 ' + c.ratioText + '，' + c.tempC + ' °C，研磨 ' + c.grindLabel + '。');
+    L.push('');
+    L.push('## 注水时刻表');
+    L.push('');
+    L.push('| 时刻 | 这一段做什么 | 加水 | 累计 |');
+    L.push('|---|---|---|---|');
+    r.pours.forEach(function (p) {
+      L.push('| ' + mmss(p.startSec) + '–' + mmss(p.endSec) + ' | ' + p.idx + '. ' + p.label + '　' + p.note.replace(/\|/g, '\\|') + ' | ' +
+        (p.amount > 0 ? f1(p.amount) + ' g' : '—') + ' | ' + f1(p.cum) + ' g |');
+    });
+    L.push('');
+    L.push('## 这一杯的数字');
+    L.push('');
+    L.push('| 项目 | 数值 |');
+    L.push('|---|---|');
+    L.push('| 目标萃取率 | ' + f2(tg.ey) + ' % |');
+    L.push('| 对应杯里浓度 | ' + f2(tg.tds) + ' % |');
+    L.push('| 被萃取出的可溶物 | ' + f3(tg.extractMass) + ' g |');
+    L.push('| 每 1 g 粉出液 | ' + f2(c.beverage / c.dose) + ' g |');
+    L.push('| 萃取率判定 | ' + EY_BAND_TXT[tg.eyBand] + ' |');
+    L.push('| 浓度判定 | ' + TDS_BAND_TXT[tg.tdsBand] + ' |');
+    if (c.iced) {
+      L.push('| 冰 | ' + f1(c.iceG) + ' g |');
+      L.push('| 热水 | ' + f1(c.hotWaterG) + ' g |');
+    }
+    L.push('');
+    if (r.diag.measured) {
+      L.push('## 校准（实测）');
+      L.push('');
+      L.push('- 实测 TDS ' + f2(r.diag.measured.tds) + ' % → 反推萃取率 ' + f2(r.diag.measured.ey) + ' %（与目标差 ' +
+        f2(r.diag.measured.ey - tg.ey) + ' 个百分点）');
+      L.push('- ' + r.diag.tdsAdvice.text);
+      L.push('- ' + r.diag.tdsAdvice.howMuch);
+      L.push('');
+    }
+    if (r.diag.tasteAdvice) {
+      L.push('## 校准（味觉）');
+      L.push('');
+      L.push('- 判定：**' + r.diag.tasteAdvice.verdict + '**');
+      L.push('- 为什么：' + r.diag.tasteAdvice.why);
+      r.diag.tasteAdvice.steps.forEach(function (s) { L.push('- 动作：' + s.text); });
+      L.push('- 判据：' + r.diag.tasteAdvice.basedOn);
+      L.push('');
+    }
+    if (r.warnings.length) {
+      L.push('## 提示');
+      L.push('');
+      r.warnings.forEach(function (w) { L.push('- ' + w.msg); });
+      L.push('');
+    }
+    L.push('## 这张卡有多少可信度');
+    L.push('');
+    r.notes.forEach(function (n) { L.push('- ' + n); });
+    L.push('- 本工具不预测口感、不评价豆子、不处理水质；意式只给参考系数。');
+    L.push('- 平衡区间与浓度区间是「常用工作区间」，本轮未取得可引用一手来源，请当参考带而不是合格线。');
+    L.push('- 默认场景是虚构示例，不是实测数据，也不代表任何真实用户分布。');
+    return L.join('\n') + '\n';
+  }
+
+  function jsonText(r) {
+    return JSON.stringify({
+      app: '一杯手冲的配比卡', version: r.version, exportedAt: new Date().toISOString(),
+      savedAt: state.savedAt, input: r.input, card: r.card, target: r.target, pours: r.pours,
+      diag: { measured: r.diag.measured, tdsAdvice: r.diag.tdsAdvice, tasteAdvice: r.diag.tasteAdvice },
+      warnings: r.warnings, notes: r.notes, checks: A.runChecks(r),
+    }, null, 2) + '\n';
+  }
+
+  function downloadCsv() {
+    const r = state.result || A.compute(state.input);
+    triggerDownload(new Blob([csvText(r)], { type: 'text/csv;charset=utf-8' }), 'pour-card-' + fileStamp() + '.csv');
+    toast('已导出 CSV');
+  }
+  function downloadMd() {
+    const r = state.result || A.compute(state.input);
+    triggerDownload(new Blob([mdText(r)], { type: 'text/markdown;charset=utf-8' }), 'pour-card-' + fileStamp() + '.md');
+    toast('已导出 Markdown');
+  }
+  function downloadJson() {
+    const r = state.result || A.compute(state.input);
+    triggerDownload(new Blob([jsonText(r)], { type: 'application/json;charset=utf-8' }), 'pour-card-' + fileStamp() + '.json');
+    toast('已导出 JSON 备份');
+  }
+
+  /* 结果卡 PNG：1080×1350，画布上画的是同一次 r 的数字 */
+  function drawCard(r) {
+    const cv = $('pngCanvas');
+    const g = cv.getContext('2d');
+    const W = cv.width, H = cv.height;
+    const c = r.card, tg = r.target;
+    g.fillStyle = '#fbf8f3'; g.fillRect(0, 0, W, H);
+    g.fillStyle = '#fffdf9'; g.fillRect(48, 48, W - 96, H - 96);
+    g.strokeStyle = '#ded5c9'; g.lineWidth = 2; g.strokeRect(48, 48, W - 96, H - 96);
+    g.textBaseline = 'top';
+    function font(size, bold) { g.font = (bold ? '700 ' : '400 ') + size + 'px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif'; }
+    function mono(size, bold) { g.font = (bold ? '700 ' : '400 ') + size + 'px ui-monospace,Menlo,Consolas,monospace'; }
+
+    g.fillStyle = '#6b6158'; font(30, false);
+    g.fillText('一 杯 手 冲 的 配 比 卡', 92, 92);
+    g.fillStyle = '#938a80'; font(20, false);
+    g.fillText('壶里烧多少水 · 杯里得多少克 · 下一杯改哪一格', 92, 138);
+
+    g.strokeStyle = '#efe8dd'; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(92, 182); g.lineTo(W - 92, 182); g.stroke();
+
+    /* 三个大数 */
+    const bigs = [
+      ['壶里要烧的水', f1(c.waterTotal) + ' g'],
+      ['杯里会得到', f1(c.beverage) + ' g'],
+      ['被粉留住', f1(c.waterRetained) + ' g'],
+    ];
+    bigs.forEach(function (b, i) {
+      const x = 92 + i * 300;
+      g.fillStyle = '#938a80'; font(20, false); g.fillText(b[0], x, 210);
+      g.fillStyle = '#2b2622'; mono(44, true); g.fillText(b[1], x, 240);
+    });
+
+    g.fillStyle = '#6b6158'; font(21, false);
+    g.fillText(f1(c.dose) + ' g 粉 ｜ 比例 ' + c.ratioText + ' ｜ ' + c.tempC + ' °C ｜ 研磨 ' + c.grindLabel, 92, 306);
+    if (c.iced) g.fillText('冰手冲：冰 ' + f1(c.iceG) + ' g + 热水 ' + f1(c.hotWaterG) + ' g', 92, 338);
+
+    g.beginPath(); g.moveTo(92, 380); g.lineTo(W - 92, 380); g.stroke();
+
+    /* 注水表 */
+    g.fillStyle = '#6b6158'; font(20, true); g.fillText('注水时刻表', 92, 404);
+    let y = 444;
+    g.fillStyle = '#938a80'; font(17, false);
+    g.fillText('时刻', 92, y); g.fillText('这一段', 300, y);
+    g.textAlign = 'right'; g.fillText('加水', W - 200, y); g.fillText('累计', W - 92, y); g.textAlign = 'left';
+    y += 30;
+    g.strokeStyle = '#efe8dd'; g.beginPath(); g.moveTo(92, y); g.lineTo(W - 92, y); g.stroke();
+    y += 14;
+    r.pours.forEach(function (p) {
+      g.fillStyle = '#2b2622'; mono(21, false);
+      g.fillText(mmss(p.startSec) + '-' + mmss(p.endSec), 92, y);
+      font(21, false); g.fillText(p.idx + '. ' + p.label, 300, y);
+      mono(21, false);
+      g.textAlign = 'right';
+      g.fillText(p.amount > 0 ? f1(p.amount) + ' g' : '—', W - 200, y);
+      g.fillText(f1(p.cum) + ' g', W - 92, y);
+      g.textAlign = 'left';
+      y += 36;
+    });
+
+    y += 10;
+    g.strokeStyle = '#efe8dd'; g.beginPath(); g.moveTo(92, y); g.lineTo(W - 92, y); g.stroke();
+    y += 22;
+    g.fillStyle = '#6b6158'; font(20, true); g.fillText('这一杯的数字', 92, y);
+    y += 40;
+    const kv = [
+      ['目标萃取率', f2(tg.ey) + ' %'],
+      ['对应杯里浓度', f2(tg.tds) + ' %'],
+      ['被萃取出的可溶物', f3(tg.extractMass) + ' g'],
+      ['每 1 g 粉出液', f2(c.beverage / c.dose) + ' g'],
+      ['萃取率判定', EY_BAND_TXT[tg.eyBand]],
+      ['浓度判定', TDS_BAND_TXT[tg.tdsBand]],
+    ];
+    kv.forEach(function (row) {
+      g.fillStyle = '#938a80'; font(20, false); g.fillText(row[0], 92, y);
+      g.fillStyle = '#2b2622'; mono(21, false); g.fillText(row[1], 470, y);
+      y += 34;
+    });
+
+    /* 校准一句 */
+    y += 14;
+    g.strokeStyle = '#efe8dd'; g.beginPath(); g.moveTo(92, y); g.lineTo(W - 92, y); g.stroke();
+    y += 22;
+    g.fillStyle = '#6b6158'; font(20, true); g.fillText('下一杯怎么改', 92, y);
+    y += 38;
+    g.fillStyle = '#2b2622';
+    const advice = (r.diag.tdsAdvice && r.diag.tdsAdvice.text) ||
+      (r.diag.tasteAdvice && (r.diag.tasteAdvice.verdict + '：' + r.diag.tasteAdvice.steps.map(function (s) { return s.text; }).join('；'))) ||
+      '没填实测 TDS 也没选味觉 —— 本工具不凭空猜你的口感。';
+    font(21, false);
+    wrapText(g, advice, 92, y, W - 184, 32);
+
+    /* 页脚边界 */
+    g.fillStyle = '#938a80'; font(16, false);
+    const foot = [
+      '经验值与设计选择，不是精确物理常数；平衡区间是常用工作区间，本轮未取得可引用一手来源。',
+      '默认场景（中烘水洗豆 15 g / V60）是虚构示例，不是实测数据。不预测口感、不评价豆子、不处理水质。',
+      '导出时间 ' + new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC',
+    ];
+    let fy = H - 132;
+    foot.forEach(function (t) { wrapText(g, t, 92, fy, W - 184, 24); fy += 42; });
+  }
+  function wrapText(g, text, x, y, maxW, lh) {
+    const chars = String(text).split('');
+    let line = '';
+    for (let i = 0; i < chars.length; i++) {
+      const test = line + chars[i];
+      if (g.measureText(test).width > maxW && line) {
+        g.fillText(line, x, y); y += lh; line = chars[i];
+      } else { line = test; }
+    }
+    if (line) g.fillText(line, x, y);
+    return y + lh;
+  }
+  function downloadPng() {
+    const r = state.result || A.compute(state.input);
+    drawCard(r);
+    const cv = $('pngCanvas');
+    /* toBlob 可能为 null（画布被污染等）；那时明确报错，不假装成功 */
+    cv.toBlob(function (blob) {
+      if (!blob) { toast('导出 PNG 失败：画布无法生成图片'); return; }
+      triggerDownload(blob, 'pour-card-结果卡-' + fileStamp() + '.png');
+      toast('已导出结果卡 PNG（1080×1350）');
+    }, 'image/png');
+  }
+
+  /* ─────────────── toast ─────────────── */
+  let toastTimer = null;
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.add('on');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove('on'); }, 2600);
+  }
+
+  /* ─────────────── 启动 ─────────────── */
+  function boot() {
+    fillStaticOptions();
+    const restored = loadLocal();
+    applyInputToControls(state.input);
+    bind();
+    render();
+    if (restored) toast('已从本机存档恢复上次的输入');
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+
+  /* 供自动化验收使用：只读暴露，不改变行为 */
+  window.PourCardUI = {
+    state: state,
+    get raw() { return state.raw; },
+    render: render,
+    read: function () { return state.result; },
+    setInput: function (patch) {
+      state.raw = Object.assign({}, state.input, patch);
+      render();
+      applyInputToControls(state.input);
+    },
+    texts: { csv: function () { return csvText(state.result || A.compute(state.input)); }, md: function () { return mdText(state.result || A.compute(state.input)); }, json: function () { return jsonText(state.result || A.compute(state.input)); } },
+    saveLocal: saveLocal, loadLocal: loadLocal, drawCard: drawCard,
+  };
+})();
+
+</script>
+</body>
+</html>

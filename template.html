@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>一杯手冲的配比卡</title>
+<style>
+  :root{
+    --ink:#2b2622; --ink2:#6b6158; --ink3:#938a80;
+    --line:#ded5c9; --line2:#efe8dd; --paper:#fbf8f3; --card:#fffdf9;
+    --accent:#8a5a2b; --accent2:#b5875a; --warn:#9a5b12; --err:#a8322a; --ok:#3f6f43;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--paper); color:var(--ink);
+    font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    overflow-x:hidden;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:22px 18px 64px}
+  header.top{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 14px;margin-bottom:4px}
+  h1{font-size:22px;margin:0;letter-spacing:.5px}
+  .tagline{color:var(--ink2);font-size:13.5px}
+  .sub{color:var(--ink3);font-size:12.5px;margin:6px 0 18px}
+
+  .layout{display:grid;grid-template-columns:minmax(300px,360px) minmax(0,1fr);gap:20px;align-items:start}
+  @media (max-width:900px){ .layout{grid-template-columns:1fr} }
+
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 16px 18px}
+  .panel h2{font-size:14px;margin:0 0 12px;letter-spacing:.4px;color:var(--ink2);font-weight:600}
+  .field{margin-bottom:13px}
+  .field:last-child{margin-bottom:0}
+  label.lb{display:block;font-size:12.5px;color:var(--ink2);margin-bottom:5px}
+  .hint{font-size:11.5px;color:var(--ink3);margin-top:4px;line-height:1.45}
+  input[type=number],input[type=text],select{
+    width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:7px;background:#fff;
+    font:inherit;font-size:14px;color:var(--ink);
+  }
+  input:focus,select:focus{outline:2px solid var(--accent2);outline-offset:-1px;border-color:var(--accent2)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .seg{display:flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+  .seg button{flex:1;padding:8px 4px;border:0;background:#fff;font:inherit;font-size:13px;color:var(--ink2);cursor:pointer}
+  .seg button+button{border-left:1px solid var(--line)}
+  .seg button[aria-pressed=true]{background:var(--accent);color:#fff}
+  .chk{display:flex;align-items:center;gap:8px;font-size:13.5px}
+  .chk input{width:16px;height:16px}
+  .btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  button.act{
+    padding:8px 13px;border:1px solid var(--line);background:#fff;border-radius:7px;
+    font:inherit;font-size:13px;color:var(--ink);cursor:pointer
+  }
+  button.act:hover{border-color:var(--accent2)}
+  button.act.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .presets{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .presets button{padding:5px 9px;border:1px dashed var(--line);background:transparent;border-radius:20px;font:inherit;font-size:12px;color:var(--ink2);cursor:pointer}
+  .presets button:hover{border-color:var(--accent2);color:var(--accent)}
+
+  /* ── 配比卡（单据式） ── */
+  .receipt{background:var(--card);border:1px solid var(--line);border-radius:4px;position:relative;overflow:hidden}
+  .receipt::before,.receipt::after{
+    content:"";position:absolute;left:0;right:0;height:7px;
+    background:radial-gradient(circle at 6px 0,transparent 5px,var(--card) 5.5px) repeat-x;
+    background-size:12px 7px;pointer-events:none
+  }
+  .receipt::before{top:-1px;transform:rotate(180deg)}
+  .receipt::after{bottom:-1px}
+  .rc-head{padding:20px 18px 12px;border-bottom:1px dashed var(--line)}
+  .rc-title{font-size:15px;letter-spacing:2px;color:var(--ink2);margin:0 0 10px}
+  .rc-big{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  .rc-big .k{font-size:11.5px;color:var(--ink3);margin-bottom:3px}
+  .rc-big .v{font-family:var(--mono);font-size:22px;font-weight:600;letter-spacing:-.5px;white-space:nowrap}
+  .rc-big .u{font-size:12px;color:var(--ink2);margin-left:2px;font-family:inherit;font-weight:400}
+  .rc-note{font-size:12px;color:var(--ink3);margin-top:10px;line-height:1.5}
+
+  .rc-sec{padding:14px 18px;border-bottom:1px dashed var(--line)}
+  .rc-sec:last-child{border-bottom:0}
+  .rc-sec h3{font-size:12.5px;margin:0 0 9px;color:var(--ink2);letter-spacing:1px;font-weight:600}
+  table.steps{width:100%;border-collapse:collapse;font-size:13px}
+  table.steps th{text-align:left;font-weight:500;color:var(--ink3);font-size:11.5px;padding:0 6px 6px 0;border-bottom:1px solid var(--line2)}
+  table.steps td{padding:7px 6px 7px 0;border-bottom:1px solid var(--line2);vertical-align:top}
+  table.steps tr:last-child td{border-bottom:0}
+  .num-badge{display:inline-flex;width:19px;height:19px;border-radius:50%;background:var(--ink);color:#fff;
+    font-size:11.5px;align-items:center;justify-content:center;font-family:var(--mono);flex:0 0 auto}
+  .stepname{display:flex;align-items:center;gap:7px}
+  .stepnote{color:var(--ink3);font-size:11.5px;line-height:1.45;margin-top:3px}
+  .mono{font-family:var(--mono)}
+  .t-right{text-align:right;white-space:nowrap}
+
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:13px}
+  .kv dt{color:var(--ink3)}
+  .kv dd{margin:0;font-family:var(--mono)}
+  .kv dd.txt{font-family:inherit}
+
+  .bandrow{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+  .band{font-size:11.5px;padding:3px 9px;border-radius:20px;border:1px solid var(--line);color:var(--ink2)}
+  .band.ok{border-color:#bcd6be;background:#f1f7f1;color:var(--ok)}
+  .band.light{border-color:#e6d6b8;background:#fdf7ec;color:var(--warn)}
+  .band.strong,.band.over{border-color:#e8c4c0;background:#fdf1f0;color:var(--err)}
+  .band.under{border-color:#d8d2c4;background:#f7f4ee;color:var(--ink2)}
+
+  .diag{border-left:3px solid var(--accent2);padding:2px 0 2px 11px;margin-top:4px}
+  .diag .verdict{font-weight:600;font-size:13.5px;margin-bottom:4px}
+  .diag .why{font-size:12.5px;color:var(--ink2);line-height:1.55}
+  .actions{list-style:none;padding:0;margin:8px 0 0}
+  .actions li{margin-bottom:6px}
+  .actions button{
+    text-align:left;width:100%;padding:7px 10px;border:1px solid var(--line);background:#fff;
+    border-radius:7px;font:inherit;font-size:12.5px;color:var(--ink);cursor:pointer;line-height:1.4
+  }
+  .actions button:hover{border-color:var(--accent2);background:#fffaf3}
+  .actions button .go{color:var(--accent);font-weight:600}
+  .aside-note{font-size:11.5px;color:var(--ink3);margin-top:7px;line-height:1.5}
+
+  .msg{border-radius:8px;padding:10px 12px;font-size:13px;margin-bottom:12px;line-height:1.55}
+  .msg.err{background:#fdf3f2;border:1px solid #eccbc7;color:#7d2620}
+  .msg.warn{background:#fdf8ee;border:1px solid #ecdcc0;color:#6f4a12}
+  .msg ul{margin:6px 0 0;padding-left:18px}
+  .msg li{margin-bottom:3px}
+  .msg .ttl{font-weight:600}
+  .stale{background:#fdf3f2;border:1px solid #eccbc7;color:#7d2620;border-radius:8px;padding:14px 16px;font-size:13.5px;line-height:1.6}
+  .stale code{font-family:var(--mono);font-size:12.5px}
+
+  .bounds{font-size:12px;color:var(--ink2);line-height:1.6}
+  .bounds ul{margin:0;padding-left:17px}
+  .bounds li{margin-bottom:4px}
+
+  .footnote{font-size:11.5px;color:var(--ink3);margin-top:16px;line-height:1.6}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;background:var(--ink);color:#fff;
+    padding:9px 15px;border-radius:20px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .18s;z-index:99}
+  .toast.on{opacity:1}
+  .sep{height:1px;background:var(--line2);margin:14px 0}
+  .tiny{font-size:11.5px;color:var(--ink3)}
+  .nowrap{white-space:nowrap}
+  @media (max-width:420px){
+    .wrap{padding:16px 12px 48px}
+    .rc-big{grid-template-columns:1fr 1fr;gap:8px}
+    .rc-big .v{font-size:19px}
+    table.steps{font-size:12.5px}
+    .rc-sec{padding:12px 13px}
+    .rc-head{padding:16px 13px 10px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>一杯手冲的配比卡</h1>
+    <span class="tagline">壶里要烧多少水、杯里会得到多少克、下一杯该改哪一格</span>
+  </header>
+  <p class="sub">粉会吸走一部分水 —— 按 1:16 冲 15 g 粉，壶里 240 g 水，杯里只有 210 g。这张卡把这笔账先算清楚。</p>
+
+  <div class="layout">
+    <!-- 左：输入 -->
+    <section class="panel" aria-label="输入">
+      <h2>你的这一杯</h2>
+
+      <div class="msg err" id="errBox" hidden></div>
+      <div class="msg warn" id="warnBox" hidden></div>
+
+      <div class="field">
+        <label class="lb" for="vesselId">器具（决定粉会带走多少水）</label>
+        <select id="vesselId"></select>
+        <div class="hint" id="vesselNote"></div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label class="lb" for="dose">粉重（g）</label>
+          <input type="text" id="dose" inputmode="decimal" autocomplete="off" placeholder="例如 15">
+        </div>
+        <div class="field">
+          <label class="lb" for="ratio">粉水比 1 :</label>
+          <input type="text" id="ratio" inputmode="decimal" autocomplete="off" placeholder="例如 16">
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label class="lb" for="tempC">水温（°C）</label>
+          <input type="text" id="tempC" inputmode="numeric" autocomplete="off" placeholder="例如 92">
+        </div>
+        <div class="field">
+          <label class="lb" for="grindIdx">研磨档</label>
+          <select id="grindIdx"></select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="lb" for="targetEy">目标萃取率（%）</label>
+        <input type="text" id="targetEy" inputmode="decimal" autocomplete="off" placeholder="例如 20">
+        <div class="hint">常用工作区间 18–22 %；这只是你自己定的目标，不是合格线。</div>
+      </div>
+
+      <div class="field">
+        <div class="chk">
+          <input type="checkbox" id="iced">
+          <label for="iced">做冰手冲（一部分水换成冰）</label>
+        </div>
+        <div id="iceWrap" hidden style="margin-top:9px">
+          <label class="lb" for="iceFrac">冰占总水的比例（%）</label>
+          <input type="text" id="iceFrac" inputmode="numeric" autocomplete="off" placeholder="例如 40">
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="field">
+        <label class="lb" for="measuredTds">实测 TDS（%，没有就留空）</label>
+        <input type="text" id="measuredTds" inputmode="decimal" autocomplete="off" placeholder="例如 1.25">
+        <div class="hint">有折光仪才填。填了就能直接算出你这杯的萃取率，并给出该改几档研磨。</div>
+      </div>
+
+      <div class="field">
+        <label class="lb" for="taste">或者只凭喝到的味道</label>
+        <select id="taste"></select>
+      </div>
+
+      <div class="btns">
+        <button class="act primary" id="saveBtn" type="button">保存到本机</button>
+        <button class="act" id="resetBtn" type="button">恢复默认</button>
+      </div>
+
+      <div class="sep"></div>
+      <div class="lb" style="margin-bottom:0">快速试一个场景</div>
+      <div class="presets" id="presets"></div>
+
+      <div class="sep"></div>
+      <div class="lb" style="margin-bottom:6px">带走这张卡</div>
+      <div class="btns" style="margin-top:0">
+        <button class="act" id="dlCsv" type="button">CSV</button>
+        <button class="act" id="dlMd" type="button">Markdown</button>
+        <button class="act" id="dlPng" type="button">结果卡 PNG</button>
+        <button class="act" id="dlJson" type="button">JSON 备份</button>
+      </div>
+      <div class="hint" id="saveState"></div>
+    </section>
+
+    <!-- 右：配比卡 -->
+    <section id="cardHost" aria-label="配比卡"></section>
+  </div>
+
+  <p class="footnote">
+    本页不联网、不认任何品牌、不预测口感、不评价豆子；不处理水质，也不做意式流速与压粉诊断。
+    吸水系数、平衡区间与各档位换算都是「经验值 / 本工具的显式声明」，不是精确物理常数 —— 详见卡片最下方「这张卡有多少可信度」。
+  </p>
+</div>
+<div class="toast" id="toast"></div>
+<canvas id="pngCanvas" width="1080" height="1350" style="display:none"></canvas>
+
+<script>
+/*CORE*/
+</script>
+<script>
+/*UI*/
+</script>
+</body>
+</html>
